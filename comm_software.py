@@ -1,105 +1,78 @@
 import paho.mqtt.client as mqtt
-import RPi.GPIO as GPIO
 import time
-import threading
-import random
+# from test_scripts import Gpio
+# gpio = Gpio()
 
-class Gpio():
-    def __init__(self):
-        # For GPIO numbering, instead of pin numbering
-        GPIO.setmode(GPIO.BCM)
+"""
+The pod state indicates the state of the pod.
+0: Disconnected: Pod is disconnected and waiting to establish connection with
+                 the mission control.
+1: Connected: Pod is connnected and waiting for commands
+2: Running: The pod is running or braking
+3: Check: The pod is performing system checks/tests
+"""
+pod_state = 0
 
-        self.redLed = 21
-        self.greenLed = 20
-
-        GPIO.setup(self.redLed, GPIO.OUT)
-        GPIO.setup(self.greenLed, GPIO.OUT)
-        GPIO.output(self.redLed, False)
-        GPIO.output(self.greenLed, False)
-
-
-    def startPod(self):
-        GPIO.output(self.redLed, False)
-        GPIO.output(self.greenLed, True)
-        print('Pod started')
-
-    def brakePod(self):
-        GPIO.output(self.redLed, True)
-        GPIO.output(self.greenLed, False)
-        print('Pod braked')
-
-    def ledDemo(self):
-        for i in range(2):
-            GPIO.output(self.redLed, True)
-            GPIO.output(self.greenLed, False)
-            time.sleep(1)
-            GPIO.output(self.redLed, False)
-            GPIO.output(self.greenLed, True)
-            time.sleep(1)
-    def stop():
-        GPIO.cleanup()
-
-import time
 
 current_time_millis = lambda: time.time()*1000
-
-gpio = Gpio()
-data_topic = "data" 
-command_topic = "mc/command" 
-heartbeat_topic = "mc/heartbeat" 
-
+data_topic = "data"
+command_topic = "mc/command"
+heartbeat_topic = "mc/heartbeat"
 heartbeat_timeout = 1500
 last_heartbeat = current_time_millis()
 
 def on_connect(client, userdata, flags, rc):
+    # Does not connect to 'data' to prevent recieving duplicate data
     client.subscribe(command_topic)
     client.subscribe(heartbeat_topic)
 
 def on_message(clients, userdata, msg):
-    global last_heartbeat
-    if (msg.topic==heartbeat_topic):
-        last_heartbeat = current_time_millis()
+    global last_heartbeat, pod_state
+    last_heartbeat = current_time_millis()
+    pod_state = 1
     if (msg.topic==command_topic):
-        last_heartbeat = current_time_millis()
         handle_commands(msg.payload.decode())
 
 def on_publish(client,userdata, mid):
     pass
 
 def handle_commands(command):
-    global client
-    print(command)
+    global client, pod_state
     if command == "start":
-        # handle_start_command()
-        gpio.startPod()
+        pod_state = 2
+        print("Pod has started")
     elif command == "brake":
-        # handle_stop_command()
-        gpio.brakePod()
+        print("Pod has braked")
+        pod_state = 1
     elif command == "check":
+        pod_state = 3
         print("Performing system check")
+        pod_state = 1
 
-def check_MC_alive():
-    global client, heartbeat_timeout, last_heartbeat
-    if (current_time_millis() - last_heartbeat > heartbeat_timeout):
-        gpio.brakePod()
-        return 0
-    return 1
+def is_MC_alive():
+    global client, heartbeat_timeout, pod_state, last_heartbeat
+    heartbeat_exceeded = (current_time_millis()-last_heartbeat) > heartbeat_timeout*1.5
+    if (heartbeat_exceeded and pod_state!=0):
+        print("MC is disconnected, the pod braked")
+        pod_state = 0
+        return False
+    if (pod_state==0):
+        print("Trying to reconnect with state: {}".format(pod_state), end="\r")
+        return False
+    return True
 
-    
-
-client = mqtt.Client()
+client = mqtt.Client("Communication Hubb")
 client.on_connect = on_connect
 client.connect("localhost", 1883, 60)
 client.on_message = on_message
 client.on_publish = on_publish
+client.loop_start()
 
 run, count = True, 0
-
 while run:
-    client.loop()
-    if (check_MC_alive() == 0): break
-    client.publish("data", "Testing script: {}".format(count))
-    time.sleep(0.3)
-    count += 1
-
-print("MC was disconnected")
+    if is_MC_alive():
+        # TODO: read data from the sensors...
+        client.publish(data_topic, "Testing script: {}".format(count))
+        # TODO: Log data to SD card...
+        time.sleep(1)
+        count += 1
