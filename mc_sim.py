@@ -19,7 +19,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(data_topic)
 
 def on_message(clients, userdata, msg):
-    print(msg.payload.decode(), end="\r")
+    print(msg.payload.decode())
 
 client = mqtt.Client()
 client.on_connect = on_connect
@@ -31,4 +31,4 @@ client.loop_start()
 while run:
     client.publish(heartbeat_topic, "beep")
     count += 1
-    time.sleep(0.2)
+    time.sleep(0.5)
