@@ -1,4 +1,9 @@
 import time
+import spidev
+from hercules_states import state_commands
+from hercules_states import hercules_states
+from hercules_states import hercules_sub_states
+
 
 MILLIS = 1000
 
@@ -20,7 +25,7 @@ class mc_messenger:
         self.last_sent = time.time()*MILLIS
         self.last_heartbeat = time.time()*MILLIS
         print("Starting MC messenger...")
-        # self.client.loop_start()
+        #self.client.loop_start()
         self.client.loop_forever()
 
 
@@ -57,7 +62,21 @@ class mc_messenger:
 
 
 class hercules_messenger:
-    pass
+    def __init__(self, sending_frequency=4):
+        self.spi = spidev.SpiDev()
+        self.spi.open(0, 0)
+        self.spi.max_speed_hz = 500000
+        self.spi.cshigh = False
+        self.spi.mode = 0b00
+
+        def send_data(data):
+            response = [self.spi.xfer(data) for i in range(8)]
+            processed = list()
+            for i in response:
+                processed.append(hex((i[0] << 8) + i[1]))
+            if processed[2] in hercules_states:
+                state = hercules_states[processed[2]]
+                client.publish("state", state)
 
 class udp_messenger:
     pass

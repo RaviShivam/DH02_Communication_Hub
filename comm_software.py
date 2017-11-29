@@ -2,7 +2,6 @@ import paho.mqtt.client as mqtt
 from messenger_ch import mc_messenger
 from messenger_ch import udp_messenger
 from commandhandler_ch import command_handler
-from numpy.random import random
 import logging
 import time
 
@@ -32,17 +31,11 @@ mc_messenger = mc_messenger(client, command_handler, heartbeat_timeout, sending_
 run = True
 data = "Testing sending."
 
-logger = logging.getLogger('hld')
-hdlr = logging.FileHandler('hld.csv')
-hdlr.setFormatter(logging.Formatter('%(asctime)s, %(message)s'))
-logger.addHandler(hdlr)
-logger.setLevel(logging.INFO)
-
 while run:
     if mc_is_alive(mc_messenger.last_heartbeat):
         mc_messenger.send_data(data)
-    time.sleep(0.1)
-    logger.info(", ".join(str(x*(random()*10)) for x in random(10)))
+    time.sleep(0.2)
+    print("running")
     # TODO: dma_handler.read(data)
     # TODO: logger.log(data)
     # TODO: spacex_messenger.send_data(data)
