@@ -107,6 +107,9 @@ class dummy_hercules():
     def BRAKE(self):
         print("Disconnected! The pod is BRAKING!!!!")
 
+    def send_command(self, command):
+        print("Sending command: {}".format(command))
+
 # class hercules_messenger(abstract_messenger):
 #     def __init__(self, sending_frequency=4):
 #         self.super(sending_frequency)

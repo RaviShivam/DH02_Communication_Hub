@@ -10,9 +10,9 @@ from messenger_ch import logging_messenger
 
 client = mqtt.Client(MQTT_CLIENT_NAME)
 hercules_messenger = dummy_hercules()
-mc_messenger = mc_messenger(client, None, HEARTBEAT_TIMEOUT_MC, sending_frequency=SENDING_FREQUENCY_MC)
+mc_messenger = mc_messenger(client, dummy_hercules, HEARTBEAT_TIMEOUT_MC, sending_frequency=SENDING_FREQUENCY_MC)
 spacex_messenger = udp_messenger(client, sending_frequency=SENDING_FREQUENCY_SPACEX)
-pi_logger = logging_messenger(client, logging_frequency=LOGGING_FREQUENCY)
+pi_logger = logging_messenger(logging_frequency=LOGGING_FREQUENCY)
 
 run = True
 pod_status = 1
