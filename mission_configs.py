@@ -1,8 +1,17 @@
-PREFIX = [0x0A, 0xAA]
+"""
+Constants that are defined for SpaceX
+"""
 
-nul = [0x00,0x00]
-tail = [nul for _ in range(5)]
+IP_ADRESS_SPACEX = "192.168.0.1"
+PORT_SPACEX = 3000
+SENDING_FREQUENCY_SPACEX = 8
 
+
+"""
+Constants for sending SPI packages to Hercules
+"""
+MASTER_PREFIX = [0x0A, 0xAA]
+SPI_DATA_TAIL = [[0x00, 0x00] for _ in range(5)]
 state_transition_commands = {
         "proceed_check_a": [0x01, 0x00],
         "proceed_check_b": [0x02, 0x00],

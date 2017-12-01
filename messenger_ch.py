@@ -5,6 +5,7 @@ import threading
 from hercules_states import state_transition_commands
 from hercules_states import hercules_states
 from hercules_states import hercules_sub_states
+import socket
 
 
 MILLIS = 1000
@@ -122,4 +123,12 @@ class hercules_messenger:
         gpio.output(self.brake_pin, True)
 
 class udp_messenger:
-    pass
+    def __init__(self, ip_adress="192.168.0.1", port=3000, sending_frequency=10):
+        self.TARGET_IP = ip_adress
+        self.TARGET_PORT = port
+        self.sending_frequency = sending_frequency
+        self.sock = socket.socket(socket.AF_INET,
+                             socket.SOCK_DGRAM)
+
+    def send_data(self, data):
+        self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
