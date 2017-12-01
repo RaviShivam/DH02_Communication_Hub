@@ -28,7 +28,7 @@ class abstract_messenger:
 
 class mc_messenger(abstract_messenger):
     def __init__(self, client, hercules_messenger, mc_heartbeat_timeout, sending_frequency=8):
-        self.super(sending_frequency)
+        super(mc_messenger, self).__init__(sending_frequency)
         self.data_topic = "data"
         self.command_topic = "mc/command"
         self.heartbeat_topic = "mc/heartbeat"
@@ -75,7 +75,7 @@ class mc_messenger(abstract_messenger):
 
 class udp_messenger(abstract_messenger):
     def __init__(self, ip_adress="192.168.0.1", port=3000, sending_frequency=10):
-        self.super(sending_frequency)
+        super(udp_messenger, self).__init__(sending_frequency)
         self.TARGET_IP = ip_adress
         self.TARGET_PORT = port
         self.sock = socket.socket(socket.AF_INET,
@@ -88,7 +88,7 @@ class udp_messenger(abstract_messenger):
 
 class logging_messenger(abstract_messenger):
     def __init__(self, logging_frequency=10):
-        self.super(logging_frequency)
+        super(logging_messenger, self).__init__(logging_frequency)
         self.logger = logging.getLogger('pi_sensor_logger')
         hdlr = logging.FileHandler('/logs/log_test.log')
         hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
