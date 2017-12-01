@@ -1,5 +1,5 @@
-from hercules_states import state_commands
-from hercules_states import hercules_states
+from mission_configs import state_commands
+from mission_configs import hercules_states
 import paho.mqtt.client as mqtt
 import RPi.GPIO as gpio 
 import time, spidev, random
