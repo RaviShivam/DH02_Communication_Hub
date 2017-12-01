@@ -1,10 +1,22 @@
 """
-Constants that are defined for SpaceX
+This file contains all the relevant constants that can be tweaked prior to the mission
 """
 
+""" 
+Constants that are defined for sending SpaceX UDP packages
+"""
 IP_ADRESS_SPACEX = "192.168.0.1"
 PORT_SPACEX = 3000
-SENDING_FREQUENCY_SPACEX = 8
+SENDING_FREQUENCY_SPACEX = 8 #per seconds
+
+
+""" 
+Mission Control constants
+"""
+MQTT_CLIENT_NAME = "COMMUNICATION HUB"
+HEARTBEAT_TIMEOUT_MC = 1500 #seconds
+SENDING_FREQUENCY_MC = 5 #p/second
+LOGGING_FREQUENCY = 10 #p/second
 
 
 """
@@ -12,6 +24,7 @@ Constants for sending SPI packages to Hercules
 """
 MASTER_PREFIX = [0x0A, 0xAA]
 SPI_DATA_TAIL = [[0x00, 0x00] for _ in range(5)]
+
 state_transition_commands = {
         "proceed_check_a": [0x01, 0x00],
         "proceed_check_b": [0x02, 0x00],
