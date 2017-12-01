@@ -16,7 +16,7 @@ Mission Control constants
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 1500 #seconds
 SENDING_FREQUENCY_MC = 5 #p/second
-LOGGING_FREQUENCY = 10 #p/second
+LOGGING_FREQUENCY = 5 #p/second
 
 
 """
