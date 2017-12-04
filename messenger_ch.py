@@ -1,16 +1,24 @@
-import RPi.GPIO as gpio
 import logging
 import socket
-import spidev
 import threading
 import time
-from mission_configs import hercules_states
-from mission_configs import hercules_sub_states
-from mission_configs import state_transition_commands
+
+import RPi.GPIO as gpio
+import spidev
+
+from mission_configs import *
 
 MILLIS = 1000.0
-# pod_status = {"fsmState": "idle", "fsmSubstate": "done"}
-pod_status = 1
+
+pod_status = {"prefix": "undefined",
+              "pod_state": "undefined",
+              "pod_substate": "undefined",
+              "error": "undefined",
+              "error_argument": "undefined",
+              "timer": "undefined",
+              "target_speed": "undefined",
+              "brake_point": "undefined"}
+
 
 class abstract_messenger:
     def __init__(self, sending_frequency):
@@ -23,7 +31,7 @@ class abstract_messenger:
         return last_sent_exceeded
 
     def reset_last_sent_timer(self):
-        self.last_sent = self.current_time_millis
+        self.last_sent = self.current_time_millis()
 
 
 class mc_messenger(abstract_messenger):
@@ -36,7 +44,7 @@ class mc_messenger(abstract_messenger):
         # Heartbeat configurations
         self.heartbeat_timeout = mc_heartbeat_timeout
         self.last_heartbeat = self.current_time_millis()
-        self.check_mc_alive = lambda: (self.current_time_millis() - self.last_heartbeat) > self.heartbeat_timeout
+        self.is_mc_alive = lambda: (self.current_time_millis() - self.last_heartbeat) < self.heartbeat_timeout
 
         # Initialize client and start separate thread for receiving commands
         self.client = client
@@ -53,19 +61,12 @@ class mc_messenger(abstract_messenger):
 
     def on_message(self, client, userdata, msg):
         self.last_heartbeat = self.current_time_millis()
-        pod_status = 1
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
             if command == "ebrake":
-                # print("The pod is braking!")
                 self.hercules_messenger.BRAKE()
             else:
-                # print("The pod is executing: {}".format(command))
                 self.hercules_messenger.send_command(msg.payload)
-
-    def mc_is_alive(self):
-        heartbeat_exceeded = (self.current_time_millis() - self.last_heartbeat) > self.heartbeat_timeout
-        return heartbeat_exceeded
 
     def send_data(self, data):
         if self.time_for_sending_data():
@@ -86,14 +87,82 @@ class udp_messenger(abstract_messenger):
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_sent_timer()
 
+
+class hercules_messenger(abstract_messenger):
+    def __init__(self, sending_frequency=4):
+        super(hercules_messenger, self).__init__(sending_frequency)
+        self.brake_pin = 21
+        gpio.setmode(gpio.BCM)
+        gpio.setup(self.brake_pin, gpio.OUT)
+        gpio.output(self.brake_pin, True)
+
+        self.spi = spidev.SpiDev()
+        self.spi.open(0, 0)
+        self.spi.max_speed_hz = 500000
+        self.spi.cshigh = False
+        self.spi.mode = 0b00
+
+        self.hercules_translator = hercules_decoder()
+
+    def xfer16(self, data):
+        response = [self.spi.xfer(packet) for packet in data]
+        processed = list()
+        for i in response:
+            processed.append((i[0] << 8) + i[1])
+        return processed
+
+    def get_pod_status(self):
+        if self.time_for_sending_data():
+            self.send_command("get_status")
+            self.reset_last_sent_timer()
+        return pod_status
+
+    def send_command(self, command, commandarg=0):
+        global pod_status
+        command = self.hercules_translator.encode_hercules_command(command, commandarg)
+        response = self.xfer16(command)
+        print("response: " + str([hex(x) for x in response]))
+        pod_status = self.hercules_translator.decode_status_response(response)
+        return pod_status
+
+    def BRAKE(self):
+        print("THE POD IS BRAKINNGG!!")
+        gpio.output(self.brake_pin, False)
+
+
+class hercules_decoder:
+    def __init__(self):
+        self.decode_commandargs = lambda x: [(x >> 8), x & 255]
+
+    def decode_status_response(self, response):
+        decoded_status = {}
+        decoded_status["prefix"] = response[0]
+        decoded_status["pod_state"] = HERCULES_STATES[response[1]] if response[1] in HERCULES_STATES else "undefined"
+        decoded_status["pod_substate"] = HERCULES_SUB_STATES[response[2]] if response[2] in HERCULES_SUB_STATES else "undefined"
+        decoded_status["error"] = HERCULES_ERROR_CODES[response[3]] if response[3] in HERCULES_ERROR_CODES else "undefined"
+        decoded_status["error_argument"] = response[4]
+        decoded_status["timer"] = response[5]
+        decoded_status["target_speed"] = response[6]
+        decoded_status["brake_point"] = response[7]
+        return decoded_status
+
+    def decode_data_response(self, response):
+        pass
+
+    def encode_hercules_command(self, command, commandarg):
+        return [MASTER_PREFIX,
+                STATE_TRANSITION_COMMANDS[command],
+                self.decode_commandargs(commandarg)] + SPI_DATA_TAIL
+
+
 class logging_messenger(abstract_messenger):
     def __init__(self, logging_frequency=10):
         super(logging_messenger, self).__init__(logging_frequency)
         self.logger = logging.getLogger('pi_sensor_logger')
-        hdlr = logging.FileHandler('/logs/log_test.log')
+        hdlr = logging.FileHandler('logs/log_test.log')
         hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
         self.logger.addHandler(hdlr)
-        self.setLevel(logging.INFO)
+        self.logger.setLevel(logging.INFO)
 
     def log_data(self, data):
         if self.time_for_sending_data():
@@ -109,65 +178,3 @@ class dummy_hercules():
 
     def send_command(self, command):
         print("Sending command: {}".format(command))
-
-# class hercules_messenger(abstract_messenger):
-#     def __init__(self, sending_frequency=4):
-#         self.super(sending_frequency)
-#         self.brake_pin = 21
-#         gpio.setmode(gpio.BCM)
-#         gpio.setup(self.brake_pin, gpio.OUT)
-#         gpio.output(self.brake_pin, True)
-#
-#         self.spi = spidev.SpiDev()
-#         self.spi.open(0, 0)
-#         self.spi.max_speed_hz = 500000
-#         self.spi.cshigh = False
-#         self.spi.mode = 0b00
-#         self.status_request = [state_transition_commands["get_status"] for _ in range(8)]
-#         # TODO: add data request
-#
-#         self.current_time_millis = lambda: time.time() * MILLIS
-#         self.status_request_timout = MILLIS / float(sending_frequency)
-#         self.last_status_request = time.time() * MILLIS
-#
-#     def exchange_data(self, data):
-#         response = [self.spi.xfer(packet) for packet in data]
-#         processed = list()
-#         for i in response:
-#             processed.append((i[0] << 8) + i[1])
-#         return processed
-#
-#     def get_pod_status(self):
-#         if self.time_for_request():
-#             response = self.exchange_data(self.status_request)
-#             self.decode_status_response(response)
-#             self.last_status_request = self.current_time_millis()
-#         return pod_status
-#
-#     def send_command(self, command):
-#         command = command.decode()
-#         command = state_transition_commands[command]
-#         command = [command for _ in range(8)]
-#         response = self.exchange_data(command)
-#         self.decode_status_response(response)
-#
-#     def time_for_request(self):
-#         last_sent_exceeded = (self.current_time_millis() - self.last_status_request) > self.status_request_timout
-#         return last_sent_exceeded
-#
-#     def decode_status_response(self, response):
-#         print(response)
-#         if response[1] in hercules_states:
-#             pod_status["fsmState"] = hercules_states[response[1]]
-#         else:
-#             pod_status["fsmState"] = "undefined"
-#         if response[2] in hercules_states:
-#             pod_status["fsmSubstate"] = hercules_sub_states[response[2]]
-#         else:
-#             pod_status["fsmSubstate"] = "undefined"
-#
-#     def BRAKE(self):
-#         print("BRAKINNGG")
-#         gpio.output(self.brake_pin, False)
-#         time.sleep(5)
-#         gpio.output(self.brake_pin, True)
