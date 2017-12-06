@@ -10,14 +10,14 @@ from mission_configs import *
 
 MILLIS = 1000.0
 
-pod_status = {"prefix": "undefined",
-              "pod_state": "undefined",
-              "pod_substate": "undefined",
-              "error": "undefined",
-              "error_argument": "undefined",
-              "timer": "undefined",
-              "target_speed": "undefined",
-              "brake_point": "undefined"}
+pod_status = {PREFIX_MC: "undefined",
+              POD_STATE_MC: "undefined",
+              POD_SUBSTATE_MC: "undefined",
+              ERROR_MC: "undefined",
+              ERROR_ARGUMENT_MC: "undefined",
+              TIMER_MC: "undefined",
+              TARGETSPEED_MC: "undefined",
+              BRAKEPOINT_MC: "undefined"}
 
 
 class abstract_messenger:
@@ -66,7 +66,10 @@ class mc_messenger(abstract_messenger):
             if command == "ebrake":
                 self.hercules_messenger.BRAKE()
             else:
-                self.hercules_messenger.send_command(msg.payload)
+                message = msg.payload.decode().split(":")
+                command = message[0]
+                argument = int(message[1])
+                self.hercules_messenger.send_command(command, argument)
 
     def send_data(self, data):
         if self.time_for_sending_data():
@@ -99,8 +102,6 @@ class hercules_messenger(abstract_messenger):
         self.spi = spidev.SpiDev()
         self.spi.open(0, 0)
         self.spi.max_speed_hz = 500000
-        self.spi.cshigh = False
-        self.spi.mode = 0b00
 
         self.hercules_translator = hercules_decoder()
 
@@ -111,14 +112,16 @@ class hercules_messenger(abstract_messenger):
             processed.append((i[0] << 8) + i[1])
         return processed
 
+
     def get_pod_status(self):
         if self.time_for_sending_data():
-            self.send_command("get_status")
+            self.send_command("get_status", 0)
             self.reset_last_sent_timer()
         return pod_status
 
-    def send_command(self, command, commandarg=0):
+    def send_command(self, command, commandarg):
         global pod_status
+        print("{}: {}".format(command, commandarg))
         command = self.hercules_translator.encode_hercules_command(command, commandarg)
         response = self.xfer16(command)
         print("response: " + str([hex(x) for x in response]))
@@ -135,15 +138,16 @@ class hercules_decoder:
         self.decode_commandargs = lambda x: [(x >> 8), x & 255]
 
     def decode_status_response(self, response):
+        global pod_status
         decoded_status = {}
-        decoded_status["prefix"] = response[0]
-        decoded_status["pod_state"] = HERCULES_STATES[response[1]] if response[1] in HERCULES_STATES else "undefined"
-        decoded_status["pod_substate"] = HERCULES_SUB_STATES[response[2]] if response[2] in HERCULES_SUB_STATES else "undefined"
-        decoded_status["error"] = HERCULES_ERROR_CODES[response[3]] if response[3] in HERCULES_ERROR_CODES else "undefined"
-        decoded_status["error_argument"] = response[4]
-        decoded_status["timer"] = response[5]
-        decoded_status["target_speed"] = response[6]
-        decoded_status["brake_point"] = response[7]
+        decoded_status[PREFIX_MC]= response[0]
+        decoded_status[POD_STATE_MC]= HERCULES_STATES[response[1]] if response[1] in HERCULES_STATES else "undefined"
+        decoded_status[POD_SUBSTATE_MC]= HERCULES_SUB_STATES[response[2]] if response[2] in HERCULES_SUB_STATES else "undefined"
+        decoded_status[ERROR_MC]= HERCULES_ERROR_CODES[response[3]] if response[3] in HERCULES_ERROR_CODES else "undefined"
+        decoded_status[ERROR_ARGUMENT_MC] = response[4]
+        decoded_status[TIMER_MC]= response[5]
+        decoded_status[TARGETSPEED_MC] = response[6]
+        decoded_status[BRAKEPOINT_MC] = response[7]
         return decoded_status
 
     def decode_data_response(self, response):

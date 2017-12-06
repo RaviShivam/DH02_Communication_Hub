@@ -12,8 +12,8 @@ import itertools
 import time
 
 client = mqtt.Client(MQTT_CLIENT_NAME)
-mc_messenger = mc_messenger(client, hercules_messenger, HEARTBEAT_TIMEOUT_MC, sending_frequency=SENDING_FREQUENCY_MC)
 hercules_messenger = hercules_messenger(SENDING_FREQUENCY_HERCULES)
+mc_messenger = mc_messenger(client, hercules_messenger, HEARTBEAT_TIMEOUT_MC, sending_frequency=SENDING_FREQUENCY_MC)
 spacex_messenger = udp_messenger(client, sending_frequency=SENDING_FREQUENCY_SPACEX)
 pi_logger = logging_messenger(logging_frequency=LOGGING_FREQUENCY)
 
@@ -21,17 +21,18 @@ run = True
 def try_to_reconnect():
     while True:
         print("Trying to reconnect")
-        time.sleep(1)
+        time.sleep(0.5)
         if mc_messenger.is_mc_alive():
             break
     gpio.output(BRAKE_PIN, True)
 
 try:
     while run:
-        data = hercules_messenger.get_pod_status()
-        pi_logger.log_data(data=data)
+        status = hercules_messenger.get_pod_status()
+        # data = hercules_messenger.get_data()
+        pi_logger.log_data(data=status)
         if mc_messenger.is_mc_alive():
-            mc_messenger.send_data(json.dumps(data))
+            mc_messenger.send_data(json.dumps(status))
         else:
             hercules_messenger.BRAKE()
             try_to_reconnect()

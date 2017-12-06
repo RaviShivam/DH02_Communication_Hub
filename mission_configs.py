@@ -17,6 +17,14 @@ MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 1500 #milliseconds
 SENDING_FREQUENCY_MC = 5 #p/second
 LOGGING_FREQUENCY = 5 #p/second
+PREFIX_MC = "prefix"
+POD_STATE_MC =  "podState"
+POD_SUBSTATE_MC = "podSubstate"
+ERROR_MC = "error"
+ERROR_ARGUMENT_MC = "errorArgument"
+TIMER_MC = "timer"
+TARGETSPEED_MC = "targetSpeed"
+BRAKEPOINT_MC = "brakePoint"
 
 
 """
@@ -34,7 +42,7 @@ STATE_TRANSITION_COMMANDS = {
         "proceed_check_c": [0x04, 0x00],
         "proceed_standstill": [0x05, 0x00],
         "launch": [0x06, 0x00],
-        "service_propusion": [0x07, 0x00],
+        "service_propulsion": [0x07, 0x00],
         "abort": [0x08, 0x00],
         "proceed_shutdown": [0x09, 0x00],
         "get_status": [0x0A, 0xAA],
