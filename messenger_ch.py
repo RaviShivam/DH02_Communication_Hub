@@ -20,21 +20,21 @@ pod_status = {PREFIX_MC: "undefined",
               BRAKEPOINT_MC: "undefined"}
 
 
-class abstract_messenger:
+class temporal_messenger:
     def __init__(self, sending_frequency):
         self.current_time_millis = lambda: time.time() * MILLIS
-        self.last_sent_timeout = MILLIS / float(sending_frequency)
-        self.last_sent = self.current_time_millis()
+        self.action_timeout = MILLIS / float(sending_frequency)
+        self.last_action = self.current_time_millis()
 
     def time_for_sending_data(self):
-        last_sent_exceeded = (self.current_time_millis() - self.last_sent) > self.last_sent_timeout
+        last_sent_exceeded = (self.current_time_millis() - self.last_action) > self.action_timeout
         return last_sent_exceeded
 
     def reset_last_sent_timer(self):
-        self.last_sent = self.current_time_millis()
+        self.last_action = self.current_time_millis()
 
 
-class mc_messenger(abstract_messenger):
+class mc_messenger(temporal_messenger):
     def __init__(self, client, hercules_messenger, mc_heartbeat_timeout, sending_frequency=8):
         super(mc_messenger, self).__init__(sending_frequency)
         self.data_topic = "data"
@@ -77,7 +77,7 @@ class mc_messenger(abstract_messenger):
             self.reset_last_sent_timer()
 
 
-class udp_messenger(abstract_messenger):
+class udp_messenger(temporal_messenger):
     def __init__(self, ip_adress="192.168.0.1", port=3000, sending_frequency=10):
         super(udp_messenger, self).__init__(sending_frequency)
         self.TARGET_IP = ip_adress
@@ -91,7 +91,7 @@ class udp_messenger(abstract_messenger):
             self.reset_last_sent_timer()
 
 
-class hercules_messenger(abstract_messenger):
+class hercules_messenger(temporal_messenger):
     def __init__(self, sending_frequency=4):
         super(hercules_messenger, self).__init__(sending_frequency)
         self.brake_pin = 21
@@ -159,7 +159,7 @@ class hercules_decoder:
                 self.decode_commandargs(commandarg)] + SPI_DATA_TAIL
 
 
-class logging_messenger(abstract_messenger):
+class logging_messenger(temporal_messenger):
     def __init__(self, logging_frequency=10):
         super(logging_messenger, self).__init__(logging_frequency)
         self.logger = logging.getLogger('pi_sensor_logger')
