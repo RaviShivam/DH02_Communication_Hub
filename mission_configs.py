@@ -29,7 +29,6 @@ HEARTBEAT_TOPIC = "mc/heartbeat"
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 1500  # milliseconds
 SENDING_FREQUENCY_MC = 5  # p/second
-LOGGING_FREQUENCY = 5  # p/second
 PREFIX_MC = "prefix"
 POD_STATE_MC = "podState"
 POD_SUBSTATE_MC = "podSubstate"
@@ -107,7 +106,6 @@ HERCULES_ERROR_CODES = {
     0x0400: "error_target_speed_not_set",
     0x0500: "error_brake_point_not_set"
 }
-
 
 def initialize_GPIO():
     gpio.setmode(gpio.BCM)
