@@ -1,14 +1,24 @@
-from messenger_ch import udp_messenger
-import socket
 import time
-import mission_configs as constants
+from messenger_ch import hercules_comm_module
+from messenger_ch import hercules_messenger
+from mission_configs import *
 
-# TODO: spacex_messenger = udp_messenger(constants.IP_ADRESS_SPACEX, constants.PORT_SPACEX, constants.SENDING_FREQUENCY_SPACEX)
-UDP_IP = "10.42.0.1"
-UDP_PORT = 1000 
+# Initialize hercules communication module
+low_frequency_retriever = hercules_comm_module(LOW_FREQUENCY_RETRIEVAL_SPEED, LOW_FREQUENCY_REQUEST_PACKET,
+                                               CHIP_SELECT_LOW_FREQUENCY)
+# Initialize all messengers
+hercules_messenger = hercules_messenger([low_frequency_retriever], CHIP_SELECT_COMMAND)
 
-spacex_messenger = udp_messenger(ip_adress=UDP_IP, port=UDP_PORT, sending_frequency=2)
+initialize_GPIO()
 
-while True:
-    spacex_messenger.send_data(b'Testing UDP')
-    time.sleep(0.5)
+run = True
+
+counter = 0
+try:
+    while run:
+        retrieved_data = hercules_messenger.retrieve_data()
+        print(retrieved_data)
+        time.sleep(0.2)
+except KeyboardInterrupt:
+    gpio.output(BRAKE_PIN, False)
+    gpio.cleanup()

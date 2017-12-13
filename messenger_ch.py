@@ -2,16 +2,17 @@ import logging
 import socket
 import threading
 import time
+import json
 from queue import Queue
+import RPi.GPIO as gpio
 
 import spidev
-
 from mission_configs import *
 
-MILLIS = 1000.0
 
-pod_state = 1
-
+spi = spidev.SpiDev()
+spi.open(0, 0)
+spi.max_speed_hz = SPI_FREQUENCY_HERCULES
 
 class temporal_messenger:
     def __init__(self, sending_frequency):
@@ -80,7 +81,7 @@ class mc_messenger(temporal_messenger):
 
     def send_data(self, data):
         if self.time_for_sending_data():
-            self.client.publish(self.data_topic, payload=data, qos=0)
+            self.client.publish(self.data_topic, payload=json.dumps(data), qos=0)
             self.reset_last_sent_timer()
 
     def try_to_reconnect(self):
@@ -99,40 +100,40 @@ class mc_messenger(temporal_messenger):
 
 
 class spi16bit:
-    def xfer16(self, data):
-        response = [self.spi.xfer(packet) for packet in data]
-        processed = list()
-        for i in response:
-            processed.append((i[0] << 8) + i[1])
+    def xfer16(self, data, cs_config):
+        response = []
+        for packet in data:
+            [gpio.output(x[0], x[1]) for x in cs_config]
+            response.append(spi.xfer(packet))
+            self.reset_CS_state()
+        processed = [(i[0] << 8) + i[1] for i in response]
         return processed
+
+    def reset_CS_state(self):
+        [gpio.output(pin, True) for pin in ALL_CS]
+
 
 
 class hercules_comm_module(temporal_messenger, spi16bit):
-    def __init__(self, retrieving_frequency, request_packet, comm_pin, decode):
-        super(hercules_comm_module).__init__(retrieving_frequency)
+    def __init__(self, retrieving_frequency, request_packet, comm_config):
+        super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
         self.latest_data = None
         self.has_new_data = False
         self.request_packet = request_packet
-        self.comm_pin = comm_pin
-        self.decode = decode
+        self.comm_config = comm_config
 
     def request_data(self):
         if self.time_for_sending_data():
-            gpio.output(self.comm_pin, False)
-            self.latest_data = self.xfer16(self.request_packet)
-            gpio.output(self.comm_pin, True)
+            self.latest_data = self.xfer16(self.request_packet, self.comm_config)
             self.has_new_data = True
             self.reset_last_sent_timer()
         return self.latest_data
 
-
 class hercules_messenger(spi16bit):
-    def __init__(self, data_retrievers, command_pin):
-        self.spi = spidev.SpiDev()
-        self.spi.open(0, 0)
-        self.spi.max_speed_hz = SPI_FREQUENCY_HERCULES
-        self.data_retrievers = data_retrievers
-        self.command_pin = command_pin
+    def __init__(self, data_modules, command_config):
+        super(hercules_messenger, self).__init__()
+        self.data_modules = data_modules
+        self.command_config = command_config
         self.decode_commandargs = lambda x: [(x >> 8), x & 255]
 
     def retrieve_data(self):
@@ -142,10 +143,9 @@ class hercules_messenger(spi16bit):
         return retrieved_data
 
     def send_command(self, command, commandarg):
-        command = self.encode(command, commandarg)
-        gpio.output(self.command_pin, gpio.LOW)
-        self.xfer16(command)
-        gpio.output(self.command_pin, gpio.HIGH)
+        print((command, commandarg))
+        command = self.encode_hercules_command(command, commandarg)
+        self.xfer16(command, self.command_config)
 
 
     def encode_hercules_command(self, command, commandarg):
@@ -157,14 +157,14 @@ class hercules_messenger(spi16bit):
 """
 This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control. 
 """
-
-
 class data_segmentor:
     def __init__(self):
         self.latest_mc_data = {}
 
-    def decode_low_frequency_data(self, fullresponse):
+    def segment_mc_data(self, fullresponse):
         global pod_state
+        if fullresponse[0] is None:
+            return "undefined"
         low_frequency_response = fullresponse[0]
         high_frequency_response = fullresponse[1]
         decoded_status = {}
