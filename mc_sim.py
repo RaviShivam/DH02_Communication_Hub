@@ -19,16 +19,16 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe(data_topic)
 
 def on_message(clients, userdata, msg):
-    print(msg.payload.decode(), end="\r")
+    print(msg.payload.decode())
 
 client = mqtt.Client()
 client.on_connect = on_connect
-client.connect("localhost", 1883, 60)
+client.connect("10.42.0.71", 1883, 60)
 client.on_message = on_message
 
 run, count = True, 1
 client.loop_start()
 while run:
-    client.publish(heartbeat_topic, "beep")
+    client.publish(heartbeat_topic, "beep: {}".format(count))
     count += 1
-    time.sleep(0.2)
+    time.sleep(0.5)
