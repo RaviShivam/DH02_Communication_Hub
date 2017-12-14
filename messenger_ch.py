@@ -64,7 +64,19 @@ class mission_logger:
 
 
 class mc_messenger(temporal_messenger):
+    """
+    Responsible for handling all communication with the mission control. This includes sending data and receiving command
+    from the mission control, but also reconnecting and triggering emergency brake if applicable.
+
+    """
+
     def __init__(self, client, mc_heartbeat_timeout, sending_frequency=8):
+        """
+        Intializes the MQTT client which is responsible for receiving messages from the mission control.
+        :param client: The initialized client MQTT client
+        :param mc_heartbeat_timeout: The timeout for heartbeat from the mission control (which checks if the mission control is functional)
+        :param sending_frequency: The frequency at which the pod will send sensor data to the mission control.
+        """
         super(mc_messenger, self).__init__(sending_frequency)
         self.data_topic = DATA_TOPIC
         self.command_topic = COMMAND_TOPIC
@@ -86,11 +98,26 @@ class mc_messenger(temporal_messenger):
         self.COMMAND_BUFFER = Queue()
 
     def on_connect(self, client, userdata, flags, rc):
+        """
+        Callback called when the connect function is called. Here all the client connects to all the necessary topics.
+        :param client: The MQTT client.
+        :param userdata: Data retrieved from the MQTT network loop
+        :param rc: Response code
+        :return: None
+        """
         client.subscribe(self.command_topic)
         client.subscribe(self.heartbeat_topic)
         print("Connected to all topics")
 
     def on_message(self, client, userdata, msg):
+        """
+        Callback triggered when the client receives a message.
+        Here, the heartbeat timer is reset and, if applicable, the command buffer is filled with new command from the mc.
+        :param client: MQTT client
+        :param userdata: data from the MQTT network loop
+        :param msg: msg received from the mission control.
+        :return: None
+        """
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
@@ -101,11 +128,21 @@ class mc_messenger(temporal_messenger):
                 self.COMMAND_BUFFER.put((message[0], int(message[1])))
 
     def send_data(self, data):
+        """
+        Sends data to the mission control if the timeout is exceeded.
+        The timeout is checked through the temporal messenger interface.
+        :param data: Data sent to the mission control.
+        :return: None
+        """
         if self.time_for_sending_data():
             self.client.publish(self.data_topic, payload=json.dumps(data), qos=0)
             self.reset_last_action_timer()
 
     def try_to_reconnect(self):
+        """
+        Debug function to check if the client is busy reconnecting. Also handles emergency brake if necessary.
+        :return: None
+        """
         global pod_state
         if pod_state is "acceleration": mc_messenger.TRIGGER_EMERGENCY_BRAKE()
         while True:
@@ -116,6 +153,10 @@ class mc_messenger(temporal_messenger):
         if not gpio.output(BRAKE_PIN): gpio.output(BRAKE_PIN, gpio.HIGH)
 
     def TRIGGER_EMERGENCY_BRAKE(self):
+        """
+        Trigger the emergency brake by setting BRAKE_PIN low.
+        :return: None
+        """
         print("THE POD IS BRAKINNGG!!")
         gpio.output(BRAKE_PIN, gpio.LOW)
 
@@ -174,12 +215,11 @@ class hercules_messenger(spi16bit):
                 self.decode_commandargs(commandarg)]
 
 
-"""
-This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control. 
-"""
-
-
 class data_segmentor:
+    """
+    This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
+    """
+
     def __init__(self):
         self.latest_mc_data = {}
 
