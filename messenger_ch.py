@@ -1,30 +1,51 @@
+import RPi.GPIO as gpio
+import json
 import logging
 import socket
+import spidev
 import threading
 import time
-import json
 from queue import Queue
-import RPi.GPIO as gpio
 
-import spidev
 from mission_configs import *
 
-
+"""
+Initialize the spidev module used to communicate with the Hercules board
+"""
 spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = SPI_FREQUENCY_HERCULES
 
+
 class temporal_messenger:
+    """
+    The basic interface implemented by all messengers in used during the mission.
+    This class allow the temporal sending of messages, giving all classes extending this class the ability to send messages
+    at a specific frequency
+    """
+
     def __init__(self, sending_frequency):
+        """
+        Initializes the counters for keeping the frequency in check.
+        :param sending_frequency: Frequency at which the messenger should operate.
+        """
         self.current_time_millis = lambda: time.time() * MILLIS
         self.action_timeout = MILLIS / float(sending_frequency)
         self.last_action = self.current_time_millis()
 
     def time_for_sending_data(self):
+        """
+        Checks if the timeout was exceeded.
+        :return: True if the messenger can send a new message, False otherwise
+        """
         last_sent_exceeded = (self.current_time_millis() - self.last_action) > self.action_timeout
         return last_sent_exceeded
 
-    def reset_last_sent_timer(self):
+    def reset_last_action_timer(self):
+        """
+        Resets the timer to the current timestamp.
+        :return: None
+        """
         self.last_action = self.current_time_millis()
 
 
@@ -82,7 +103,7 @@ class mc_messenger(temporal_messenger):
     def send_data(self, data):
         if self.time_for_sending_data():
             self.client.publish(self.data_topic, payload=json.dumps(data), qos=0)
-            self.reset_last_sent_timer()
+            self.reset_last_action_timer()
 
     def try_to_reconnect(self):
         global pod_state
@@ -113,7 +134,6 @@ class spi16bit:
         [gpio.output(pin, True) for pin in ALL_CS]
 
 
-
 class hercules_comm_module(temporal_messenger, spi16bit):
     def __init__(self, retrieving_frequency, request_packet, comm_config):
         super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
@@ -126,8 +146,9 @@ class hercules_comm_module(temporal_messenger, spi16bit):
         if self.time_for_sending_data():
             self.latest_data = self.xfer16(self.request_packet, self.comm_config)
             self.has_new_data = True
-            self.reset_last_sent_timer()
+            self.reset_last_action_timer()
         return self.latest_data
+
 
 class hercules_messenger(spi16bit):
     def __init__(self, data_modules, command_config):
@@ -147,7 +168,6 @@ class hercules_messenger(spi16bit):
         command = self.encode_hercules_command(command, commandarg)
         self.xfer16(command, self.command_config)
 
-
     def encode_hercules_command(self, command, commandarg):
         return [MASTER_PREFIX,
                 STATE_TRANSITION_COMMANDS[command],
@@ -157,6 +177,8 @@ class hercules_messenger(spi16bit):
 """
 This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control. 
 """
+
+
 class data_segmentor:
     def __init__(self):
         self.latest_mc_data = {}
@@ -193,7 +215,7 @@ class udp_messenger(temporal_messenger):
     def send_data(self, data):
         if self.time_for_sending_data():
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
-            self.reset_last_sent_timer()
+            self.reset_last_action_timer()
 
 
 class dummy_hercules():
