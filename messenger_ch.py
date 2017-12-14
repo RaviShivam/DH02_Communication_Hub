@@ -92,7 +92,7 @@ class mc_messenger(temporal_messenger):
             time.sleep(0.5)
             if mc_messenger.is_mc_alive():
                 break
-        if not gpio.output: gpio.output(BRAKE_PIN, gpio.HIGH)
+        if not gpio.output(BRAKE_PIN): gpio.output(BRAKE_PIN, gpio.HIGH)
 
     def TRIGGER_EMERGENCY_BRAKE(self):
         print("THE POD IS BRAKINNGG!!")
