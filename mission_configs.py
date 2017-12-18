@@ -43,6 +43,8 @@ BRAKEPOINT_MC = 7
 """
 Constants for sending SPI packages to Hercules
 """
+LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
+LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
 LOW_DATA_RETRIEVAL_FREQUENCY = 4 #Hz
 HIGH_DATA_RETRIEVAL_FREQUENCY = 25 #Hz
 SPI_FREQUENCY_HERCULES = 2000000 #Hz

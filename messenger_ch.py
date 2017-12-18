@@ -50,8 +50,8 @@ class temporal_messenger:
 
 
 class mission_logger:
-    def __init__(self, file):
-        self.logger = logging.getLogger('pi_sensor_logger')
+    def __init__(self, logger_name, file):
+        self.logger = logging.getLogger(logger_name)
         open(file, 'w')
         hdlr = logging.FileHandler(file)
         hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))

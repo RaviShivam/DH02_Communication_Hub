@@ -25,8 +25,8 @@ hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_freq
 spacex_messenger = udp_messenger(sending_frequency=SENDING_FREQUENCY_SPACEX)
 
 # Initialize loggers
-low_frequency_logger = mission_logger(LOW_FREQUENCY_LOG_FILE)
-high_frequency_logger = mission_logger(HIGH_FREQUENCY_LOG_FILE)
+low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
+high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
 
 
 def handle_received_commands():
