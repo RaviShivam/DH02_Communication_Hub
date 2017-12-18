@@ -1,5 +1,6 @@
 # Created by .ignore support plugin (hsz.mobi)
 *.pyc
+*.log
 .idea/
 __pycache__/
 *.iml

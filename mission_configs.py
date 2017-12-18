@@ -29,7 +29,7 @@ HEARTBEAT_TOPIC = "mc/heartbeat"
 
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 1500  # milliseconds
-# TODO: Make second timeout while accelarating.
+# TODO: Make second timeout while accelerating.
 SENDING_FREQUENCY_MC = 5  # p/second
 PREFIX_MC = 0
 POD_STATE_MC = 1
@@ -43,8 +43,8 @@ BRAKEPOINT_MC = 7
 """
 Constants for sending SPI packages to Hercules
 """
-LOW_DATA_RETRIEVAL_FREQUENCY = 2 #Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 2 #Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 4 #Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 25 #Hz
 SPI_FREQUENCY_HERCULES = 2000000 #Hz
 
 BRAKE_PIN = 21
@@ -119,6 +119,7 @@ HERCULES_ERROR_CODES = {
 
 
 def initialize_GPIO():
+    gpio.setwarnings(False)
     gpio.setmode(gpio.BCM)
     gpio.setup(BRAKE_PIN, gpio.OUT)
     gpio.setup(CS0, gpio.OUT)

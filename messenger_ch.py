@@ -52,7 +52,8 @@ class temporal_messenger:
 class mission_logger:
     def __init__(self, file):
         self.logger = logging.getLogger('pi_sensor_logger')
-        hdlr = logging.FileHandler(open(file, 'w'))
+        open(file, 'w')
+        hdlr = logging.FileHandler(file)
         hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
         self.logger.addHandler(hdlr)
         self.logger.setLevel(logging.INFO)
@@ -92,7 +93,8 @@ class mc_messenger(temporal_messenger):
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
-        threading.Thread(target=self.client.loop_forever).start()
+        self.receiver_thread = threading.Thread(target=self.client.loop_forever)
+        self.receiver_thread.start()
 
         # Command buffer will be filled with incoming commands from MC.
         self.COMMAND_BUFFER = Queue()
@@ -150,7 +152,7 @@ class mc_messenger(temporal_messenger):
             time.sleep(0.5)
             if self.is_mc_alive():
                 break
-        if not gpio.output(BRAKE_PIN): gpio.output(BRAKE_PIN, gpio.HIGH)
+        if not gpio.input(BRAKE_PIN): gpio.output(BRAKE_PIN, gpio.HIGH)
 
     def TRIGGER_EMERGENCY_BRAKE(self):
         """
