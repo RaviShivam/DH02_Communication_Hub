@@ -144,11 +144,11 @@ class mc_messenger(temporal_messenger):
         :return: None
         """
         global pod_state
-        if pod_state is "acceleration": mc_messenger.TRIGGER_EMERGENCY_BRAKE()
+        if pod_state is "acceleration": self.TRIGGER_EMERGENCY_BRAKE()
         while True:
             print("Trying to reconnect")
             time.sleep(0.5)
-            if mc_messenger.is_mc_alive():
+            if self.is_mc_alive():
                 break
         if not gpio.output(BRAKE_PIN): gpio.output(BRAKE_PIN, gpio.HIGH)
 
