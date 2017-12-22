@@ -16,6 +16,10 @@ spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = SPI_FREQUENCY_HERCULES
 
+"""
+Initialize pod state to check when to brake if connection is lost
+"""
+pod_state = -1
 
 class temporal_messenger:
     """
@@ -68,7 +72,6 @@ class mc_messenger(temporal_messenger):
     """
     Responsible for handling all communication with the mission control. This includes sending data and receiving command
     from the mission control, but also reconnecting and triggering emergency brake if applicable.
-
     """
 
     def __init__(self, client, mc_heartbeat_timeout, sending_frequency=8):
@@ -99,6 +102,9 @@ class mc_messenger(temporal_messenger):
         # Command buffer will be filled with incoming commands from MC.
         self.COMMAND_BUFFER = Queue()
 
+        # Any to 16 bit converter. Does not handle overflow
+        self.int2bits16 = lambda x: [(x >> 8), x & 255]
+
     def on_connect(self, client, userdata, flags, rc):
         """
         Callback called when the connect function is called. Here all the client connects to all the necessary topics.
@@ -126,8 +132,13 @@ class mc_messenger(temporal_messenger):
             if command == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
             else:
-                message = msg.payload.decode().split(":")
-                self.COMMAND_BUFFER.put((message[0], int(message[1])))
+                message = self.decode(msg.payload)
+                self.COMMAND_BUFFER.put(message)
+
+    def decode(self, message):
+        message = message.decode()[1,-1].split(",")
+        message = [self.int2bits16(int(x)) for x in message]
+        return message
 
     def send_data(self, data):
         """
@@ -137,7 +148,7 @@ class mc_messenger(temporal_messenger):
         :return: None
         """
         if self.time_for_sending_data():
-            self.client.publish(self.data_topic, payload=json.dumps(data), qos=0)
+            self.client.publish(self.data_topic, data, qos=0)
             self.reset_last_action_timer()
 
     def try_to_reconnect(self):
@@ -146,7 +157,7 @@ class mc_messenger(temporal_messenger):
         :return: None
         """
         global pod_state
-        if pod_state is "acceleration": self.TRIGGER_EMERGENCY_BRAKE()
+        if pod_state is POD_ACCELERATION_STATE: self.TRIGGER_EMERGENCY_BRAKE()
         while True:
             print("Trying to reconnect")
             time.sleep(0.5)
@@ -198,7 +209,7 @@ class hercules_messenger(spi16bit):
         super(hercules_messenger, self).__init__()
         self.data_modules = data_modules
         self.command_config = command_config
-        self.decode_commandargs = lambda x: [(x >> 8), x & 255]
+        self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
     def retrieve_data(self):
         retrieved_data = []
@@ -206,44 +217,30 @@ class hercules_messenger(spi16bit):
             retrieved_data.append(module.request_data())
         return retrieved_data
 
-    def send_command(self, command, commandarg):
-        print((command, commandarg))
-        command = self.encode_hercules_command(command, commandarg)
+    def send_command(self, command):
         self.xfer16(command, self.command_config)
-
-    def encode_hercules_command(self, command, commandarg):
-        return [MASTER_PREFIX,
-                STATE_TRANSITION_COMMANDS[command],
-                self.decode_commandargs(commandarg)]
-
 
 class data_segmentor:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
-
     def __init__(self):
         self.latest_mc_data = {}
 
     def segment_mc_data(self, fullresponse):
         global pod_state
         if fullresponse[0] is None:
-            return "undefined"
-        low_frequency_response = fullresponse[0]
-        high_frequency_response = fullresponse[1]
-        decoded_status = {}
-        decoded_status[POD_STATE_MC] = HERCULES_STATES[low_frequency_response[1]] if low_frequency_response[
-                                                                                         1] in HERCULES_STATES else "undefined"
-        decoded_status[POD_SUBSTATE_MC] = HERCULES_SUB_STATES[low_frequency_response[2]] if low_frequency_response[
-                                                                                                2] in HERCULES_SUB_STATES else "undefined"
-        decoded_status[ERROR_MC] = HERCULES_ERROR_CODES[low_frequency_response[3]] if low_frequency_response[
-                                                                                          3] in HERCULES_ERROR_CODES else "undefined"
-        decoded_status[ERROR_ARGUMENT_MC] = low_frequency_response[4]
-        decoded_status[TIMER_MC] = low_frequency_response[5]
-        decoded_status[TARGETSPEED_MC] = low_frequency_response[6]
-        decoded_status[BRAKEPOINT_MC] = low_frequency_response[7]
-        pod_state = decoded_status[POD_STATE_MC]
-        return decoded_status
+            return [-1 for _ in range(len(fullresponse[0]))]
+        pod_state = fullresponse[0][1]
+        return fullresponse[0] + fullresponse[1]
+
+    def segment_spacex_data(self, fullresponse):
+        global pod_state
+        if fullresponse[0] is None:
+            return [-1 for _ in range(len(fullresponse[0]))]
+        pod_state = fullresponse[0][1]
+        return fullresponse[0] + fullresponse[1]
+
 
 
 class udp_messenger(temporal_messenger):
@@ -258,14 +255,3 @@ class udp_messenger(temporal_messenger):
         if self.time_for_sending_data():
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_action_timer()
-
-
-class dummy_hercules():
-    def __init__(self):
-        pass
-
-    def BRAKE(self):
-        print("Disconnected! The pod is BRAKING!!!!")
-
-    def send_command(self, command):
-        print("Sending command: {}".format(command))

@@ -21,13 +21,18 @@ high_frequency_data_retriever = hercules_comm_module(HIGH_DATA_RETRIEVAL_FREQUEN
 # Initialize all messengers
 client = mqtt.Client(MQTT_CLIENT_NAME)
 mc_messenger = mc_messenger(client, HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC)
-hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever], CHIP_SELECT_COMMAND)
+hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever],
+                                        CHIP_SELECT_COMMAND)
 spacex_messenger = udp_messenger(sending_frequency=SENDING_FREQUENCY_SPACEX)
 
 # Initialize loggers
 low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
 high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
 
+
+# Initialize segmentors
+segment_spacex_data = data_segmentor.segment_spacex_data
+segment_mc_data = data_segmentor.segment_mc_data
 
 def handle_received_commands():
     """
@@ -39,19 +44,20 @@ def handle_received_commands():
         command, args = mc_messenger.COMMAND_BUFFER.get()
         hercules_messenger.send_command(command, args)
 
+
 # boolean for running the main loop
 run = True
 try:
     while run:
-        handle_received_commands() # execute all commands in the command buffer
-        retrieved_data = hercules_messenger.retrieve_data() # retrieve data from hercules using data retrievers
-        low_frequency_logger.log_data(low_frequency_data_retriever) # Log the low frequency data
-        high_frequency_logger.log_data(high_frequency_data_retriever) # Log the high frequency data.
+        handle_received_commands()  # execute all commands in the command buffer
+        retrieved_data = hercules_messenger.retrieve_data()  # retrieve data from hercules using data retrievers
+        low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
+        high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
         # spacex_messenger.send_data(retrieved_data) # Send SpaceX data.
-        if mc_messenger.is_mc_alive(): # Check if the mission control is alive
-            mc_messenger.send_data(data_segmentor().segment_mc_data(retrieved_data)) # send data to mission control.
+        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+            mc_messenger.send_data(segment_mc_data(retrieved_data))  # send data to mission control.
         else:
-            mc_messenger.try_to_reconnect() # debug reconnecting.
+            mc_messenger.try_to_reconnect()  # debug reconnecting.
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, False)
     gpio.cleanup()
