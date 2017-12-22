@@ -31,8 +31,7 @@ high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENC
 
 
 # Initialize segmentors
-segment_spacex_data = data_segmentor.segment_spacex_data
-segment_mc_data = data_segmentor.segment_mc_data
+data_segmentor = data_segmentor()
 
 def handle_received_commands():
     """
@@ -41,8 +40,8 @@ def handle_received_commands():
     :return: None
     """
     while not mc_messenger.COMMAND_BUFFER.empty():
-        command, args = mc_messenger.COMMAND_BUFFER.get()
-        hercules_messenger.send_command(command, args)
+        command = mc_messenger.COMMAND_BUFFER.get()
+        hercules_messenger.send_command(command)
 
 
 # boolean for running the main loop
@@ -55,7 +54,7 @@ try:
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
         # spacex_messenger.send_data(retrieved_data) # Send SpaceX data.
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
-            mc_messenger.send_data(segment_mc_data(retrieved_data))  # send data to mission control.
+            mc_messenger.send_data(data_segmentor.segment_mc_data(retrieved_data))  # send data to mission control.
         else:
             mc_messenger.try_to_reconnect()  # debug reconnecting.
 except KeyboardInterrupt:

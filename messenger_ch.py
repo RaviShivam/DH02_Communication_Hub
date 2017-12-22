@@ -21,6 +21,7 @@ Initialize pod state to check when to brake if connection is lost
 """
 pod_state = -1
 
+
 class temporal_messenger:
     """
     The basic interface implemented by all messengers in used during the mission.
@@ -105,6 +106,14 @@ class mc_messenger(temporal_messenger):
         # Any to 16 bit converter. Does not handle overflow
         self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
+    def is_int(self, num):
+        print(type(num))
+        try:
+            int(num)
+        except ValueError:
+            return False
+        return True
+
     def on_connect(self, client, userdata, flags, rc):
         """
         Callback called when the connect function is called. Here all the client connects to all the necessary topics.
@@ -136,7 +145,9 @@ class mc_messenger(temporal_messenger):
                 self.COMMAND_BUFFER.put(message)
 
     def decode(self, message):
-        message = message.decode()[1,-1].split(",")
+        message = message.decode()[1:-1].split(",")
+        if not all(self.is_int(item) for item in message):
+            message = [99, 99]
         message = [self.int2bits16(int(x)) for x in message]
         return message
 
@@ -218,21 +229,24 @@ class hercules_messenger(spi16bit):
         return retrieved_data
 
     def send_command(self, command):
+        command = [MASTER_PREFIX] + command
         self.xfer16(command, self.command_config)
+
 
 class data_segmentor:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
+
     def __init__(self):
         self.latest_mc_data = {}
 
     def segment_mc_data(self, fullresponse):
         global pod_state
         if fullresponse[0] is None:
-            return [-1 for _ in range(len(fullresponse[0]))]
+            return str([-1 for _ in range(5)])
         pod_state = fullresponse[0][1]
-        return fullresponse[0] + fullresponse[1]
+        return str(fullresponse[0] + fullresponse[1])
 
     def segment_spacex_data(self, fullresponse):
         global pod_state
@@ -240,7 +254,6 @@ class data_segmentor:
             return [-1 for _ in range(len(fullresponse[0]))]
         pod_state = fullresponse[0][1]
         return fullresponse[0] + fullresponse[1]
-
 
 
 class udp_messenger(temporal_messenger):
