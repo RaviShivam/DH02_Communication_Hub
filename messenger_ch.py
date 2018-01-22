@@ -5,6 +5,7 @@ import socket
 import spidev
 import threading
 import time
+import struct
 from queue import Queue
 
 from mission_configs import *
@@ -107,7 +108,6 @@ class mc_messenger(temporal_messenger):
         self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
     def is_int(self, num):
-        print(type(num))
         try:
             int(num)
         except ValueError:
@@ -138,7 +138,8 @@ class mc_messenger(temporal_messenger):
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
-            if command == EMERGENCY_BRAKE_COMMAND:
+            state_switch = int(command.split(",")[0][1:])
+            if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
             else:
                 message = self.decode(msg.payload)
@@ -181,8 +182,11 @@ class mc_messenger(temporal_messenger):
         Trigger the emergency brake by setting BRAKE_PIN low.
         :return: None
         """
-        print("THE POD IS BRAKINNGG!!")
         gpio.output(BRAKE_PIN, gpio.LOW)
+        print("THE POD IS BRAKINNGG!!")
+        time.sleep(1)
+        gpio.output(BRAKE_PIN, gpio.HIGH)
+
 
 
 class spi16bit:
@@ -265,6 +269,7 @@ class udp_messenger(temporal_messenger):
                                   socket.SOCK_DGRAM)
 
     def send_data(self, data):
-        if self.time_for_sending_data():
+        if self.time_for_sending_data() and data is not None:
+            data = struct.pack(">%sf" % len(data), *data)
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_action_timer()

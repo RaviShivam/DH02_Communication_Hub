@@ -23,7 +23,8 @@ client = mqtt.Client(MQTT_CLIENT_NAME)
 mc_messenger = mc_messenger(client, HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC)
 hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever],
                                         CHIP_SELECT_COMMAND)
-spacex_messenger = udp_messenger(sending_frequency=SENDING_FREQUENCY_SPACEX)
+# spacex_messenger = udp_messenger(sending_frequency=SENDING_FREQUENCY_SPACEX)
+spacex_messenger = udp_messenger(ip_adress="10.42.0.1", port=5005, sending_frequency=SENDING_FREQUENCY_SPACEX)
 
 # Initialize loggers
 low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
@@ -52,11 +53,14 @@ try:
         retrieved_data = hercules_messenger.retrieve_data()  # retrieve data from hercules using data retrievers
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
-        # spacex_messenger.send_data(retrieved_data) # Send SpaceX data.
+
+        spacex_messenger.send_data(low_frequency_data_retriever.latest_data) # Send SpaceX data.
+
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             mc_messenger.send_data(data_segmentor.segment_mc_data(retrieved_data))  # send data to mission control.
         else:
             mc_messenger.try_to_reconnect()  # debug reconnecting.
+
 except KeyboardInterrupt:
-    gpio.output(BRAKE_PIN, False)
+    gpio.output(BRAKE_PIN, gpio.LOW)
     gpio.cleanup()

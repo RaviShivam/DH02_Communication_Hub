@@ -4,12 +4,12 @@ import RPi.GPIO as gpio
 This file contains all the relevant constants that can be tweaked prior to the mission
 """
 
-""" 
+"""
 Constants that are defined for sending SpaceX UDP packages
 """
 IP_ADRESS_SPACEX = "192.168.0.1"
 PORT_SPACEX = 3000
-SENDING_FREQUENCY_SPACEX = 8  # per seconds
+SENDING_FREQUENCY_SPACEX = 3 # per seconds
 
 """
 Logging constants
@@ -17,11 +17,11 @@ Logging constants
 HIGH_FREQUENCY_LOG_FILE = 'logs/highfreq.log'
 LOW_FREQUENCY_LOG_FILE = 'logs/lowfreq.log'
 
-""" 
+"""
 Mission Control constants
 """
 MILLIS = 1000.0
-EMERGENCY_BRAKE_COMMAND = "EMERGENCY_BRAKE"
+EMERGENCY_BRAKE_COMMAND = 0x0dec
 MQTT_BROKER_ADDRESS = 'localhost'
 DATA_TOPIC = "data"
 COMMAND_TOPIC = "mc/command"
@@ -37,8 +37,8 @@ Constants for sending SPI packages to Hercules
 """
 LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
-LOW_DATA_RETRIEVAL_FREQUENCY = 4 #Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 25 #Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 1 #Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 1 #Hz
 SPI_FREQUENCY_HERCULES = 2000000 #Hz
 
 BRAKE_PIN = 21
@@ -61,7 +61,7 @@ LOW_FREQUENCY_PACKET_LENGTH = 119 #times 119 bits
 HIGH_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(HIGH_FREQUENCY_PACKET_LENGTH)]
 LOW_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(LOW_FREQUENCY_PACKET_LENGTH)]
 
-POD_ACCELERATION_STATE = 1793
+POD_ACCELERATION_STATE = 0x0600
 
 def initialize_GPIO():
     gpio.setwarnings(False)
