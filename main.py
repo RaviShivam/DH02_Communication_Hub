@@ -45,21 +45,42 @@ def handle_received_commands():
         hercules_messenger.send_command(command)
 
 
+def trigger_reconnecting_state():
+    """
+    This method is triggered when the Mission Control is disconnected.
+    This handles the same procedure as the main loop, but waits to reconnect with the mission control.
+    """
+    GPIO.output(BRAKE_PIN, False)
+    while True:
+        handle_received_commands()  # execute all commands in the command buffer
+        hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
+        low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
+        high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
+
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+
+        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+            break
+    print("Reconnected...")
+    GPIO.output(BRAKE_PIN, True)
+
+
 # boolean for running the main loop
 run = True
 try:
     while run:
         handle_received_commands()  # execute all commands in the command buffer
-        retrieved_data = hercules_messenger.retrieve_data()  # retrieve data from hercules using data retrievers
+        hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
 
-        spacex_messenger.send_data(low_frequency_data_retriever.latest_data) # Send SpaceX data.
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
-            mc_messenger.send_data(data_segmentor.segment_mc_data(retrieved_data))  # send data to mission control.
+            mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
         else:
-            mc_messenger.try_to_reconnect()  # debug reconnecting.
+            print("Disconnected... Entering reconnection state.")
+            trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)

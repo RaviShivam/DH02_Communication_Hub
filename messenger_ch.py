@@ -76,7 +76,7 @@ class mc_messenger(temporal_messenger):
     from the mission control, but also reconnecting and triggering emergency brake if applicable.
     """
 
-    def __init__(self, client, mc_heartbeat_timeout, sending_frequency=8):
+    def __init__(self, client, mc_heartbeat_timeout, sending_frequency):
         """
         Intializes the MQTT client which is responsible for receiving messages from the mission control.
         :param client: The initialized client MQTT client
@@ -222,15 +222,16 @@ class hercules_comm_module(temporal_messenger, spi16bit):
 class hercules_messenger(spi16bit):
     def __init__(self, data_modules, command_config):
         super(hercules_messenger, self).__init__()
+        self.latest_retrieved_data = []
         self.data_modules = data_modules
         self.command_config = command_config
         self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
-    def retrieve_data(self):
-        retrieved_data = []
+    def poll_latest_data(self):
+        new_data = []
         for module in self.data_modules:
-            retrieved_data.append(module.request_data())
-        return retrieved_data
+            new_data.append(module.request_data())
+        self.latest_retrieved_data = new_data
 
     def send_command(self, command):
         command = [MASTER_PREFIX] + command
@@ -261,7 +262,7 @@ class data_segmentor:
 
 
 class udp_messenger(temporal_messenger):
-    def __init__(self, ip_adress="192.168.0.1", port=3000, sending_frequency=10):
+    def __init__(self, ip_adress, port, sending_frequency):
         super(udp_messenger, self).__init__(sending_frequency)
         self.TARGET_IP = ip_adress
         self.TARGET_PORT = port
