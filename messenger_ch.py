@@ -76,7 +76,7 @@ class mc_messenger(temporal_messenger):
     from the mission control, but also reconnecting and triggering emergency brake if applicable.
     """
 
-    def __init__(self, client, mc_heartbeat_timeout, sending_frequency):
+    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, sending_frequency, segmentor):
         """
         Intializes the MQTT client which is responsible for receiving messages from the mission control.
         :param client: The initialized client MQTT client
@@ -84,6 +84,7 @@ class mc_messenger(temporal_messenger):
         :param sending_frequency: The frequency at which the pod will send sensor data to the mission control.
         """
         super(mc_messenger, self).__init__(sending_frequency)
+        self.segment_data = segmentor
         self.data_topic = DATA_TOPIC
         self.command_topic = COMMAND_TOPIC
         self.heartbeat_topic = HEARTBEAT_TOPIC
@@ -94,10 +95,10 @@ class mc_messenger(temporal_messenger):
         self.is_mc_alive = lambda: (self.current_time_millis() - self.last_heartbeat) < self.heartbeat_timeout
 
         # Initialize client and start separate thread for receiving commands
-        self.client = client
+        self.client = mqtt.Client(MQTT_CLIENT_NAME)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
-        self.client.connect(MQTT_BROKER_ADDRESS, 1883, 60)
+        self.client.connect(broker_ip, broker_port, 60)
         self.receiver_thread = threading.Thread(target=self.client.loop_forever)
         self.receiver_thread.start()
 
@@ -160,6 +161,7 @@ class mc_messenger(temporal_messenger):
         :return: None
         """
         if self.time_for_sending_data():
+            data = self.segment_data(data)
             self.client.publish(self.data_topic, data, qos=0)
             self.reset_last_action_timer()
 
@@ -246,14 +248,14 @@ class data_segmentor:
     def __init__(self):
         self.latest_mc_data = {}
 
-    def segment_mc_data(self, fullresponse):
+    def SEGMENT_MC_DATA(self, fullresponse):
         global pod_state
         if fullresponse[0] is None:
             return str([-1 for _ in range(5)])
         pod_state = fullresponse[0][1]
-        return str(fullresponse[0] + fullresponse[1])
+        return str(fullresponse[1] + fullresponse[1])
 
-    def segment_spacex_data(self, fullresponse):
+    def SEGMENT_SPACEX_DATA(self, fullresponse):
         global pod_state
         if fullresponse[0] is None:
             return [-1 for _ in range(len(fullresponse[0]))]

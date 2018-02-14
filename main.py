@@ -1,7 +1,8 @@
 import RPi.GPIO as gpio
 import paho.mqtt.client as mqtt
 
-from messenger_ch import data_segmentor
+from messenger_ch.data_segmentor import SEGMENT_MC_DATA
+from messenger_ch.data_segmentor import SEGMENT_SPACEX_DATA
 from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
 from messenger_ch import mc_messenger
@@ -15,16 +16,21 @@ initialize_GPIO()
 # Initialize hercules communication module
 low_frequency_data_retriever = hercules_comm_module(LOW_DATA_RETRIEVAL_FREQUENCY, LOW_FREQUENCY_REQUEST_PACKET,
                                                     CHIP_SELECT_CONFIG_LOW_FREQUENCY)
+
 high_frequency_data_retriever = hercules_comm_module(HIGH_DATA_RETRIEVAL_FREQUENCY, HIGH_FREQUENCY_REQUEST_PACKET,
                                                      CHIP_SELECT_CONFIG_HIGH_FREQUENCY)
 
 # Initialize all messengers
-client = mqtt.Client(MQTT_CLIENT_NAME)
-mc_messenger = mc_messenger(client, HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC)
 hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever],
                                         CHIP_SELECT_COMMAND)
+
+mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
+                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC, SEGMENT_MC_DATA)
+
 # spacex_messenger = udp_messenger(sending_frequency=SENDING_FREQUENCY_SPACEX)
-spacex_messenger = udp_messenger(ip_adress="10.42.0.1", port=5005, sending_frequency=SENDING_FREQUENCY_SPACEX)
+spacex_messenger = udp_messenger(ip_adress="10.42.0.1", port=5005,
+                                sending_frequency=SENDING_FREQUENCY_SPACEX, SEGMENT_SPACEX_DATA)
+
 
 # Initialize loggers
 low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)

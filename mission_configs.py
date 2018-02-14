@@ -21,11 +21,12 @@ LOW_FREQUENCY_LOG_FILE = 'logs/lowfreq.log'
 Mission Control constants
 """
 MILLIS = 1000.0
-EMERGENCY_BRAKE_COMMAND = 0x0dec
-MQTT_BROKER_ADDRESS = 'localhost'
+MQTT_BROKER_IP = 'localhost'
+MQTT_BROKER_PORT = 1883
 DATA_TOPIC = "data"
 COMMAND_TOPIC = "mc/command"
 HEARTBEAT_TOPIC = "mc/heartbeat"
+EMERGENCY_BRAKE_COMMAND = 0x0dec
 
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 1500  # milliseconds
