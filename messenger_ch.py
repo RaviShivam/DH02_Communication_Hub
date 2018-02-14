@@ -253,26 +253,24 @@ class data_segmentor:
         if fullresponse[0] is None:
             return str([-1 for _ in range(5)])
         pod_state = fullresponse[0][1]
-        return str(fullresponse[1] + fullresponse[1])
+        return str(fullresponse[0] + fullresponse[1])
 
     def SEGMENT_SPACEX_DATA(self, fullresponse):
-        global pod_state
-        if fullresponse[0] is None:
-            return [-1 for _ in range(len(fullresponse[0]))]
-        pod_state = fullresponse[0][1]
-        return fullresponse[0] + fullresponse[1]
+        return struct.pack(">%sf" % len(fullresponse), *fullresponse)
+
 
 
 class udp_messenger(temporal_messenger):
-    def __init__(self, ip_adress, port, sending_frequency):
+    def __init__(self, ip_adress, port, sending_frequency, segment_data):
         super(udp_messenger, self).__init__(sending_frequency)
         self.TARGET_IP = ip_adress
         self.TARGET_PORT = port
         self.sock = socket.socket(socket.AF_INET,
-                                  socket.SOCK_DGRAM)
+                                  socket.SOCK_DGRAM
+        self.segment_data = segment_data
 
     def send_data(self, data):
         if self.time_for_sending_data() and data is not None:
-            data = struct.pack(">%sf" % len(data), *data)
+            data = self.segment_data(data)
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_action_timer()

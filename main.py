@@ -20,14 +20,14 @@ low_frequency_data_retriever = hercules_comm_module(LOW_DATA_RETRIEVAL_FREQUENCY
 high_frequency_data_retriever = hercules_comm_module(HIGH_DATA_RETRIEVAL_FREQUENCY, HIGH_FREQUENCY_REQUEST_PACKET,
                                                      CHIP_SELECT_CONFIG_HIGH_FREQUENCY)
 
-# Initialize all messengers
+# Initialize hardware messenger
 hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever],
                                         CHIP_SELECT_COMMAND)
 
+# Initialize network messengers
 mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
                             HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC, SEGMENT_MC_DATA)
 
-# spacex_messenger = udp_messenger(sending_frequency=SENDING_FREQUENCY_SPACEX)
 spacex_messenger = udp_messenger(ip_adress="10.42.0.1", port=5005,
                                 sending_frequency=SENDING_FREQUENCY_SPACEX, SEGMENT_SPACEX_DATA)
 
@@ -72,21 +72,23 @@ def trigger_reconnecting_state():
 
 
 # boolean for running the main loop
+dummy_data = list(range(1,100)])
 run = True
 try:
     while run:
-        handle_received_commands()  # execute all commands in the command buffer
-        hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
-        low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
-        high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
+        # handle_received_commands()  # execute all commands in the command buffer
+        # hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
+        # low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
+        # high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
+        #
+        # spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+        spacex_messenger.send_data(dummy_data) # Send SpaceX data.
 
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
-
-        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
-            mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
-        else:
-            print("Disconnected... Entering reconnection state.")
-            trigger_reconnecting_state()
+        # if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+        #     mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
+        # else:
+        #     print("Disconnected... Entering reconnection state.")
+        #     trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)
