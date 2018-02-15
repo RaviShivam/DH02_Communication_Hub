@@ -67,12 +67,11 @@ def trigger_reconnecting_state():
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             break
-    print("Reconnected...")
-    GPIO.output(BRAKE_PIN, True)
+    print("Reconnected. Entering normal state")
+    gpio.output(BRAKE_PIN, True)
 
 
 # boolean for running the main loop
-dummy_data = list(range(1,100))
 run = True
 try:
     while run:
@@ -80,9 +79,7 @@ try:
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
-        #
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
-        spacex_messenger.send_data(dummy_data) # Send SpaceX data.
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.

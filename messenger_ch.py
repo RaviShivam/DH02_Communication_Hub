@@ -8,6 +8,7 @@ import time
 import struct
 import paho.mqtt.client as mqtt
 from queue import Queue
+from threading import Thread
 
 from mission_configs import *
 
@@ -17,12 +18,6 @@ Initialize the spidev module used to communicate with the Hercules board
 spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = SPI_FREQUENCY_HERCULES
-
-"""
-Initialize pod state to check when to brake if connection is lost
-"""
-pod_state = -1
-
 
 class temporal_messenger:
     """
@@ -162,33 +157,25 @@ class mc_messenger(temporal_messenger):
         :return: None
         """
         if self.time_for_sending_data():
+            if data[0] is None:
+                return None
             data = self.segment_data(data)
             self.client.publish(self.data_topic, data, qos=0)
             self.reset_last_action_timer()
 
-    def try_to_reconnect(self):
-        """
-        Debug function to check if the client is busy reconnecting. Also handles emergency brake if necessary.
-        :return: None
-        """
-        global pod_state
-        if pod_state is POD_ACCELERATION_STATE: self.TRIGGER_EMERGENCY_BRAKE()
-        while True:
-            print("Trying to reconnect")
-            time.sleep(0.5)
-            if self.is_mc_alive():
-                break
-        if not gpio.input(BRAKE_PIN): gpio.output(BRAKE_PIN, gpio.HIGH)
-
     def TRIGGER_EMERGENCY_BRAKE(self):
         """
-        Trigger the emergency brake by setting BRAKE_PIN low.
+        Triggers the emergency brake by setting BRAKE_PIN low for 1 second.
+        This is done on a seperate thread to avoid main thread falling asleep.
         :return: None
         """
-        gpio.output(BRAKE_PIN, gpio.LOW)
-        print("THE POD IS BRAKINNGG!!")
-        time.sleep(1)
-        gpio.output(BRAKE_PIN, gpio.HIGH)
+        def trigger():
+            gpio.output(BRAKE_PIN, gpio.LOW)
+            time.sleep(1)
+            gpio.output(BRAKE_PIN, gpio.HIGH)
+
+        t = Thread(target=trigger)
+        t.start()
 
 
 
@@ -246,20 +233,25 @@ class data_segmentor:
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
     def SEGMENT_MC_DATA(fullresponse):
-        global pod_state
-        if fullresponse[0] is None:
-            return str([-1 for _ in range(5)])
-        pod_state = fullresponse[0][1]
-        return str(fullresponse[0] + fullresponse[1])
+        return str(fullresponse)
 
     def SEGMENT_SPACEX_DATA(fullresponse):
-        if not all(map(lambda x: type(x) == int, fullresponse)):
-            return struct.pack(">%sf" % len(fullresponse), *[-1 for _ in range(len(fullresponse))])
+        data = []
+        data.append(TEAM_ID)
+        if fullresponse[INDEX_POD_STATE] in SPACEX_POD_STATE:
+            data.append(SPACEX_POD_STATE[fullresponse[INDEX_POD_STATE]])
+        else:
+            data.append(1)
+        data.append(fullresponse[INDEX_ACCELARATION])
+        data.append(fullresponse[INDEX_POSITION])
+        data.append(fullresponse[INDEX_VELOCITY])
+        data.append(fullresponse[INDEX_BATTERY_VOLTAGE])
+        data.append(fullresponse[INDEX_BATTERY_CURRENT])
+        data.append(fullresponse[INDEX_BATTERY_TEMPERATURE])
+        data.append(fullresponse[INDEX_POD_TEMPERATURE])
+        data.append(fullresponse[INDEX_STRIPE_COUNT])
         packer = struct.Struct('>BBlllllllL')
-        # return packer.pack(*range(1, 11))
-        return struct.pack(">%sf" % len(fullresponse), *fullresponse)
-
-
+        return packer.pack(*data)
 
 class udp_messenger(temporal_messenger):
     def __init__(self, ip_adress, port, sending_frequency, segment_data):
@@ -270,7 +262,9 @@ class udp_messenger(temporal_messenger):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def send_data(self, data):
-        if self.time_for_sending_data() and data is not None:
+        if self.time_for_sending_data():
+            if len(fullresponse) < 125:
+                return None
             data = self.segment_data(data)
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_action_timer()

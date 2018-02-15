@@ -10,6 +10,17 @@ Constants that are defined for sending SpaceX UDP packages
 IP_ADRESS_SPACEX = "192.168.0.1"
 PORT_SPACEX = 3000
 SENDING_FREQUENCY_SPACEX = 3 # per seconds
+TEAM_ID = 1 # Should be changed during competition
+INDEX_POD_STATE = 2
+INDEX_ACCELARATION = 124
+INDEX_POSITION = 122
+INDEX_VELOCITY = 123
+INDEX_BATTERY_VOLTAGE = 16
+INDEX_BATTERY_CURRENT = 100
+INDEX_BATTERY_TEMPERATURE = 100
+INDEX_POD_TEMPERATURE = 100
+INDEX_STRIPE_COUNT = 100
+
 
 """
 Logging constants
@@ -63,6 +74,22 @@ HIGH_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(HIGH_F
 LOW_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(LOW_FREQUENCY_PACKET_LENGTH)]
 
 POD_ACCELERATION_STATE = 0x0600
+
+
+SPACEX_POD_STATE = {
+    0 : 1,   # 0x0000
+    256: 1,  # 0x0100
+    512: 1,  # 0x0200
+    768: 1,  # 0x0300
+    1024: 1, # 0x0400
+    1280: 2, # 0x0500
+    1536: 3, # 0x0600
+    1792: 5, # 0x0700
+    2048: 2, # 0x0800
+    2204: 2, # 0x0900
+    2560: 4, # 0x0A00
+    2816: 1  # 0x0B00
+}
 
 def initialize_GPIO():
     gpio.setwarnings(False)
