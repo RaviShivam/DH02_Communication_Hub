@@ -1,8 +1,6 @@
 import RPi.GPIO as gpio
-import paho.mqtt.client as mqtt
 
-from messenger_ch.data_segmentor import SEGMENT_MC_DATA
-from messenger_ch.data_segmentor import SEGMENT_SPACEX_DATA
+from messenger_ch import data_segmentor
 from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
 from messenger_ch import mc_messenger
@@ -26,10 +24,12 @@ hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_freq
 
 # Initialize network messengers
 mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
-                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC, SEGMENT_MC_DATA)
+                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC,
+                            data_segmentor.SEGMENT_MC_DATA)
 
-spacex_messenger = udp_messenger(ip_adress="10.42.0.1", port=5005,
-                                sending_frequency=SENDING_FREQUENCY_SPACEX, SEGMENT_SPACEX_DATA)
+spacex_messenger = udp_messenger("10.42.0.1", 5005,
+                                SENDING_FREQUENCY_SPACEX,
+                                data_segmentor.SEGMENT_SPACEX_DATA)
 
 
 # Initialize loggers
@@ -56,7 +56,7 @@ def trigger_reconnecting_state():
     This method is triggered when the Mission Control is disconnected.
     This handles the same procedure as the main loop, but waits to reconnect with the mission control.
     """
-    GPIO.output(BRAKE_PIN, False)
+    gpio.output(BRAKE_PIN, False)
     while True:
         handle_received_commands()  # execute all commands in the command buffer
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
@@ -72,23 +72,23 @@ def trigger_reconnecting_state():
 
 
 # boolean for running the main loop
-dummy_data = list(range(1,100)])
+dummy_data = list(range(1,100))
 run = True
 try:
     while run:
-        # handle_received_commands()  # execute all commands in the command buffer
-        # hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
-        # low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
-        # high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
+        handle_received_commands()  # execute all commands in the command buffer
+        hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
+        low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
+        high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
         #
-        # spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
         spacex_messenger.send_data(dummy_data) # Send SpaceX data.
 
-        # if mc_messenger.is_mc_alive():  # Check if the mission control is alive
-        #     mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
-        # else:
-        #     print("Disconnected... Entering reconnection state.")
-        #     trigger_reconnecting_state()
+        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+            mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
+        else:
+            print("Disconnected... Entering reconnection state.")
+            trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)

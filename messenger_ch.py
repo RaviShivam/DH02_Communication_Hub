@@ -6,6 +6,7 @@ import spidev
 import threading
 import time
 import struct
+import paho.mqtt.client as mqtt
 from queue import Queue
 
 from mission_configs import *
@@ -244,18 +245,18 @@ class data_segmentor:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
-
-    def __init__(self):
-        self.latest_mc_data = {}
-
-    def SEGMENT_MC_DATA(self, fullresponse):
+    def SEGMENT_MC_DATA(fullresponse):
         global pod_state
         if fullresponse[0] is None:
             return str([-1 for _ in range(5)])
         pod_state = fullresponse[0][1]
         return str(fullresponse[0] + fullresponse[1])
 
-    def SEGMENT_SPACEX_DATA(self, fullresponse):
+    def SEGMENT_SPACEX_DATA(fullresponse):
+        if not all(map(lambda x: type(x) == int, fullresponse)):
+            return struct.pack(">%sf" % len(fullresponse), *[-1 for _ in range(len(fullresponse))])
+        packer = struct.Struct('>BBlllllllL')
+        # return packer.pack(*range(1, 11))
         return struct.pack(">%sf" % len(fullresponse), *fullresponse)
 
 
@@ -265,9 +266,8 @@ class udp_messenger(temporal_messenger):
         super(udp_messenger, self).__init__(sending_frequency)
         self.TARGET_IP = ip_adress
         self.TARGET_PORT = port
-        self.sock = socket.socket(socket.AF_INET,
-                                  socket.SOCK_DGRAM
         self.segment_data = segment_data
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     def send_data(self, data):
         if self.time_for_sending_data() and data is not None:
