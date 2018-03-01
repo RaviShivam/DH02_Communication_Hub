@@ -1,5 +1,6 @@
 import RPi.GPIO as gpio
 
+import time
 from messenger_ch import data_segmentor
 from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
@@ -80,6 +81,7 @@ try:
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+        print(hercules_messenger.latest_retrieved_data)
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.

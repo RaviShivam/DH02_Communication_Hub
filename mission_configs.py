@@ -10,7 +10,11 @@ Constants that are defined for sending SpaceX UDP packages
 IP_ADRESS_SPACEX = "192.168.0.1"
 PORT_SPACEX = 3000
 SENDING_FREQUENCY_SPACEX = 3 # per seconds
-TEAM_ID = 1 # Should be changed during competition
+
+"""
+Creation of the UDP package.
+"""
+TEAM_ID = 1 # TODO: Should be changed during competition
 INDEX_POD_STATE = 2
 INDEX_ACCELARATION = 124
 INDEX_POSITION = 122

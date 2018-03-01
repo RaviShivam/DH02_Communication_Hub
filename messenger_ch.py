@@ -135,7 +135,7 @@ class mc_messenger(temporal_messenger):
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
-            state_switch = int(command.split(",")[0][1:])
+            state_switch = int(command.split(",")[0][1:]) 
             if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
             else:
@@ -186,7 +186,7 @@ class spi16bit:
             [gpio.output(x[0], x[1]) for x in cs_config]
             response.append(spi.xfer(packet))
             self.reset_CS_state()
-        processed = [(i[0] << 8) + i[1] for i in response]
+            processed = [(i[0] << 8) + i[1] for i in response]
         return processed
 
     def reset_CS_state(self):
@@ -233,7 +233,7 @@ class data_segmentor:
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
     def SEGMENT_MC_DATA(fullresponse):
-        return str(fullresponse)
+        return str(fullresponse[0] + fullresponse[1])
 
     def SEGMENT_SPACEX_DATA(fullresponse):
         data = []
@@ -263,7 +263,7 @@ class udp_messenger(temporal_messenger):
 
     def send_data(self, data):
         if self.time_for_sending_data():
-            if len(fullresponse) < 125:
+            if len(data) < 125:
                 return None
             data = self.segment_data(data)
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
