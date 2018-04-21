@@ -1,6 +1,8 @@
 import RPi.GPIO as gpio
 
 import time
+import pprint
+from messenger_ch import temporal_messenger
 from messenger_ch import data_segmentor
 from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
@@ -8,6 +10,7 @@ from messenger_ch import mc_messenger
 from messenger_ch import mission_logger
 from messenger_ch import udp_messenger
 from mission_configs import *
+import struct
 
 # Set gpio pins used during the mission high.
 initialize_GPIO()
@@ -73,6 +76,8 @@ def trigger_reconnecting_state():
 
 
 
+debug_timeout = temporal_messenger(10)
+pp = pprint.PrettyPrinter(indent=6)
 
 # boolean for running the main loop
 run = True
@@ -83,9 +88,23 @@ try:
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
-        if (hercules_messenger.latest_retrieved_data[0] is not None):
-   #         print([hex(x) for x in hercules_messenger.latest_retrieved_data[0]])
-            print([hex(x) for x in hercules_messenger.latest_retrieved_data[1]])
+        if debug_timeout.time_for_sending_data():
+            if (hercules_messenger.latest_retrieved_data[0] is not None):
+                low = hercules_messenger.latest_retrieved_data[0]
+                high = hercules_messenger.latest_retrieved_data[1]
+                print([hex(x) for x in high])
+                #print([hex(x) for x in low])
+                acc_x = struct.unpack('>f', bytes.fromhex(format((high[5] << 16 | high[6]), 'x').zfill(8))) if high[6] is not 0 or high[5] is not 0 else 0
+                acc_y = struct.unpack('>f', bytes.fromhex(format((high[7] << 16 | high[8]), 'x').zfill(8))) if high[8] is not 0 or high[7] is not 0 else 0
+                acc_z = struct.unpack('>f', bytes.fromhex(format((high[9] << 16 | high[10]), 'x').zfill(8))) if high[10] is not 0 or high[9] is not 0 else 0
+                #gyr_x = struct.unpack('>f', bytes.fromhex(format((high[12] << 16 | high[13]), 'x').zfill(8))) if high[12] is not 0 or high[13] is not 0 else 0
+                #gyr_y = struct.unpack('>f', bytes.fromhex(format((high[14] << 16 | high[15]), 'x').zfill(8))) if high[14] is not 0 or high[15] is not 0 else 0
+                #gyr_z = struct.unpack('>f', bytes.fromhex(format((high[16] << 16 | high[17]), 'x').zfill(8))) if high[16] is not 0 or high[17] is not 0 else 0
+                #temp = struct.unpack('>f', bytes.fromhex(format((low[12] << 16 | low[13]), 'x').zfill(8))) if low[12] != 0 or high[13] != 0 else 0
+                data = [acc_x, acc_y, acc_z]
+                #print('\t'.join(str(x) for x in data))
+                #print(data)
+            debug_timeout.reset_last_action_timer()
         
 
 #        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
