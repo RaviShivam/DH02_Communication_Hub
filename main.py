@@ -71,9 +71,6 @@ def trigger_reconnecting_state():
     print("Reconnected. Entering normal state")
     gpio.output(BRAKE_PIN, True)
 
-
-
-
 # boolean for running the main loop
 run = True
 try:
@@ -83,16 +80,16 @@ try:
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
-        if (hercules_messenger.latest_retrieved_data[0] is not None):
-   #         print([hex(x) for x in hercules_messenger.latest_retrieved_data[0]])
-            print([hex(x) for x in hercules_messenger.latest_retrieved_data[1]])
-        
+        #if (hercules_messenger.latest_retrieved_data[0] is not None):
+            #print([hex(x) for x in hercules_messenger.latest_retrieved_data[0]])
+            #print([hex(x) for x in hercules_messenger.latest_retrieved_data[1]])
 
-#        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
- #           mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
-  #      else:
-   #         print("Disconnected... Entering reconnection state.")
-    #        trigger_reconnecting_state()
+        #mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+            mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
+        # else:
+            # print("Disconnected... Entering reconnection state.")
+            # trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)
