@@ -53,6 +53,7 @@ class temporal_messenger:
 
 class mission_logger:
     def __init__(self, logger_name, file):
+        self.name = logger_name
         self.logger = logging.getLogger(logger_name)
         file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
         open(file, 'w')
@@ -61,9 +62,11 @@ class mission_logger:
         self.logger.addHandler(hdlr)
         self.logger.setLevel(logging.INFO)
 
-    def log_data(self, logging_instance):
+    def log_data(self, logging_instance, console=False):
         if logging_instance.has_new_data:
             self.logger.info(logging_instance.latest_data)
+            if console:
+                print("{}: {}".format(self.name, logging_instance.latest_data)) 
             logging_instance.has_new_data = False
 
 
@@ -201,8 +204,6 @@ class mc_messenger(temporal_messenger):
 class spi16bit:
     def xfer16(self, data, cs_config):
         response = []
-        if(len(data) != 21 and len(data) != 100):
-            print(data)     
         for packet in data:
             [gpio.output(x[0], x[1]) for x in cs_config]
             response.append(spi.xfer(packet))
