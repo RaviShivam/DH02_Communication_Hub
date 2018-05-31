@@ -88,6 +88,7 @@ class mc_messenger(temporal_messenger):
         self.data_topic = DATA_TOPIC
         self.command_topic = COMMAND_TOPIC
         self.heartbeat_topic = HEARTBEAT_TOPIC
+        self.simulation_topic = SIMULATION_TOPIC
 
         # Heartbeat configurations
         self.heartbeat_timeout = mc_heartbeat_timeout
@@ -126,6 +127,7 @@ class mc_messenger(temporal_messenger):
         print("Initialize messenger")
         client.subscribe(self.command_topic)
         client.subscribe(self.heartbeat_topic)
+        client.subscribe(self.simulation_topic)
         print("Connected to all topics")
 
     def on_message(self, client, userdata, msg):
@@ -147,6 +149,10 @@ class mc_messenger(temporal_messenger):
             elif state_switch == RESET_COMMAND:
                 self.TRIGGER_RESET()
                 print("Reset command issued")
+            elif state_switch == LAUNCH_COMMAND:
+                self.client.publish(self.simulation_topic, "launch", qos=0)
+                message = self.decode(msg.payload)
+                self.COMMAND_BUFFER.put(message)
             else:
                 message = self.decode(msg.payload)
                 self.COMMAND_BUFFER.put(message)
