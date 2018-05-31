@@ -1,5 +1,5 @@
 import RPi.GPIO as gpio
-
+import os
 import time
 from messenger_ch import data_segmentor
 from messenger_ch import hercules_comm_module
@@ -8,6 +8,10 @@ from messenger_ch import mc_messenger
 from messenger_ch import mission_logger
 from messenger_ch import udp_messenger
 from mission_configs import *
+
+# Create logs dir if it does not exist
+if not os.path.exists("logs"):
+    os.makedirs("logs")
 
 # Set gpio pins used during the mission high.
 initialize_GPIO()
@@ -80,19 +84,17 @@ try:
     while run:
         handle_received_commands()  # execute all commands in the command buffer
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
+
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
-        if (hercules_messenger.latest_retrieved_data[0] is not None):
-   #         print([hex(x) for x in hercules_messenger.latest_retrieved_data[0]])
-            print([hex(x) for x in hercules_messenger.latest_retrieved_data[1]])
-        
 
-#        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
- #           mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
-  #      else:
-   #         print("Disconnected... Entering reconnection state.")
-    #        trigger_reconnecting_state()
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+
+        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+            mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
+        else:
+            print("Disconnected... Entering reconnection state.")
+            trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)
