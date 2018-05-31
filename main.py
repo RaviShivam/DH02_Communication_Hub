@@ -75,9 +75,6 @@ def trigger_reconnecting_state():
     print("Reconnected. Entering normal state")
     gpio.output(BRAKE_PIN, True)
 
-
-
-
 # boolean for running the main loop
 run = True
 try:
@@ -92,9 +89,9 @@ try:
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
-        else:
-            print("Disconnected... Entering reconnection state.")
-            trigger_reconnecting_state()
+        # else:
+            # print("Disconnected... Entering reconnection state.")
+            # trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)

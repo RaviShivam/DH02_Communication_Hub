@@ -54,6 +54,7 @@ class temporal_messenger:
 class mission_logger:
     def __init__(self, logger_name, file):
         self.logger = logging.getLogger(logger_name)
+        file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
         open(file, 'w')
         hdlr = logging.FileHandler(file)
         hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
@@ -119,6 +120,7 @@ class mc_messenger(temporal_messenger):
         :param rc: Response code
         :return: None
         """
+        print("Initialize messenger")
         client.subscribe(self.command_topic)
         client.subscribe(self.heartbeat_topic)
         print("Connected to all topics")
@@ -135,15 +137,19 @@ class mc_messenger(temporal_messenger):
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
-            state_switch = int(command.split(",")[0][1:]) 
+            state_switch = int(command.split(",")[0])
             if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
+                print("Pod Stop Command issued")
+            elif state_switch == RESET_COMMAND:
+                self.TRIGGER_RESET()
+                print("Reset command issued")
             else:
                 message = self.decode(msg.payload)
                 self.COMMAND_BUFFER.put(message)
 
     def decode(self, message):
-        message = message.decode()[1:-1].split(",")
+        message = message.decode().split(",")
         if not all(self.is_int(item) for item in message):
             message = [99, 99]
         message = [self.int2bits16(int(x)) for x in message]
@@ -162,6 +168,19 @@ class mc_messenger(temporal_messenger):
             data = self.segment_data(data)
             self.client.publish(self.data_topic, data, qos=0)
             self.reset_last_action_timer()
+
+    def TRIGGER_RESET(self):
+        """
+        Triggers the reset of the Hercules by setting RESET_PIN low for 1 second
+        :return : None
+        """
+        def trigger():
+            gpio.output(RESET_PIN, gpio.LOW)
+            time.sleep(1)
+            gpio.output(RESET_PIN, gpio.HIGH)
+
+        t = Thread(target=trigger)
+        t.start()
 
     def TRIGGER_EMERGENCY_BRAKE(self):
         """
@@ -182,6 +201,8 @@ class mc_messenger(temporal_messenger):
 class spi16bit:
     def xfer16(self, data, cs_config):
         response = []
+        if(len(data) != 21 and len(data) != 100):
+            print(data)     
         for packet in data:
             [gpio.output(x[0], x[1]) for x in cs_config]
             response.append(spi.xfer(packet))
