@@ -231,6 +231,7 @@ class hercules_comm_module(temporal_messenger, spi16bit):
 
     def request_data(self):
         if self.time_for_sending_data():
+            print(self.request_packet, len(self.request_packet))
             self.latest_data = self.xfer16(self.request_packet, self.comm_config)
             self.has_new_data = True
             self.reset_last_action_timer()
