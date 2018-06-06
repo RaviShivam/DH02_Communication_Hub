@@ -63,7 +63,20 @@ class mission_logger:
 
     def log_data(self, logging_instance):
         if logging_instance.has_new_data:
-            self.logger.info(logging_instance.latest_data)
+            raw = logging_instance.latest_data
+            log_data = []
+            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[1] << 16 | raw[2]), 'x').zfill(8))) if raw[2] is not 0 or raw[1] is not 0 else 0)
+            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[3] << 16 | raw[4]), 'x').zfill(8))) if raw[4] is not 0 or raw[3] is not 0 else 0)
+
+            #log_data.append(raw[5])
+
+            log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[6] << 16 | raw[7]), 'x').zfill(8))) if raw[7] is not 0 or raw[6] is not 0 else 0)
+            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[8] << 16 | raw[9]), 'x').zfill(8))) if raw[9] is not 0 or raw[8] is not 0 else 0)
+            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[10] << 16 | raw[11]), 'x').zfill(8))) if raw[11] is not 0 or raw[10] is not 0 else 0)
+            log_data.append(raw[12])
+            log_data.append(raw[13])
+
+            self.logger.info(log_data)
             logging_instance.has_new_data = False
 
 

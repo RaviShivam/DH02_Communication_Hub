@@ -29,8 +29,8 @@ INDEX_STRIPE_COUNT = 100
 """
 Logging constants
 """
-HIGH_FREQUENCY_LOG_FILE = 'logs/highfreq.log'
-LOW_FREQUENCY_LOG_FILE = 'logs/lowfreq.log'
+HIGH_FREQUENCY_LOG_FILE = '/home/pi/DH02_Communication_Hub/logs/highfreq.log'
+LOW_FREQUENCY_LOG_FILE = '/home/pi/DH02_Communication_Hub/logs/lowfreq.log'
 
 """
 Mission Control constants
@@ -55,14 +55,14 @@ Constants for sending SPI packages to Hercules
 LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
 LOW_DATA_RETRIEVAL_FREQUENCY = 10 #Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 10 #Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 400 #Hz
 SPI_FREQUENCY_HERCULES = 2000000 #Hz
 
-BRAKE_PIN = 5
+BRAKE_PIN = 12
 RESET_PIN = 22
-CS0 = 19
-CS1 = 13
-CS2 = 6
+CS0 = 21
+CS1 = 20
+CS2 = 16
 
 ALL_CS = [CS0, CS1, CS2]
 
