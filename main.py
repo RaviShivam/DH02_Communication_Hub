@@ -10,8 +10,8 @@ from messenger_ch import udp_messenger
 from mission_configs import *
 
 # Create logs dir if it does not exist
-if not os.path.exists("logs"):
-    os.makedirs("logs")
+if not os.path.exists("/home/pi/DH02_Communication_Hub/logs"):
+    os.makedirs("/home/pi/DH02_Communication_Hub/logs")
 
 # Set gpio pins used during the mission high.
 initialize_GPIO()
