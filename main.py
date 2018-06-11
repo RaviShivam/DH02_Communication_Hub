@@ -82,7 +82,7 @@ try:
         handle_received_commands()  # execute all commands in the command buffer
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
 
-        low_frequency_logger.log_data(low_frequency_data_retriever, console=False)  # Log the low frequency data
+        low_frequency_logger.log_data(low_frequency_data_retriever, console=True)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever, console=False)  # Log the high frequency data.
 
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
