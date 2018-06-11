@@ -65,22 +65,41 @@ class mission_logger:
     def log_data(self, logging_instance, console=False):
         if logging_instance.has_new_data:
             raw = logging_instance.latest_data
-            #log_data = []
+            self.logger.info(", ".join(str(x) for x in raw))
+            if console:
+                print("{}: {}".format(self.name, raw))
+            logging_instance.has_new_data = False
+
+class high_mission_logger:
+    def __init__(self, logger_name, file):
+        self.name = logger_name
+        self.logger = logging.getLogger(logger_name)
+        file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
+        open(file, 'w')
+        hdlr = logging.FileHandler(file)
+        hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+        self.logger.addHandler(hdlr)
+        self.logger.setLevel(logging.INFO)
+
+    def log_data(self, logging_instance, console=False):
+        if logging_instance.has_new_data:
+            raw = logging_instance.latest_data
+            log_data = []
             #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[1] << 16 | raw[2]), 'x').zfill(8))) if raw[2] is not 0 or raw[1] is not 0 else 0)
             #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[3] << 16 | raw[4]), 'x').zfill(8))) if raw[4] is not 0 or raw[3] is not 0 else 0)
 
             #log_data.append(raw[5])
 
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[6] << 16 | raw[7]), 'x').zfill(8))) if raw[7] is not 0 or raw[6] is not 0 else 0)
+            log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[6] << 16 | raw[7]), 'x').zfill(8))) if raw[7] is not 0 or raw[6] is not 0 else 0)
             #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[8] << 16 | raw[9]), 'x').zfill(8))) if raw[9] is not 0 or raw[8] is not 0 else 0)
             #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[10] << 16 | raw[11]), 'x').zfill(8))) if raw[11] is not 0 or raw[10] is not 0 else 0)
-            #log_data.append(raw[12])
-            #log_data.append(raw[13])
+            log_data.append(raw[12])
+            log_data.append(raw[13])
 
-            self.logger.info(raw)
+            self.logger.info(", ".join(str(x) for x in raw))
 
             if console:
-                print("{}: {}".format(self.name, raw)) 
+                print("{}: {}".format(self.name, raw))
             logging_instance.has_new_data = False
 
 
@@ -245,7 +264,6 @@ class hercules_comm_module(temporal_messenger, spi16bit):
 
     def request_data(self):
         if self.time_for_sending_data():
-            print(self.request_packet, len(self.request_packet))
             self.latest_data = self.xfer16(self.request_packet, self.comm_config)
             self.has_new_data = True
             self.reset_last_action_timer()

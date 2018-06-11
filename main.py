@@ -6,6 +6,7 @@ from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
 from messenger_ch import mc_messenger
 from messenger_ch import mission_logger
+from messenger_ch import high_mission_logger
 from messenger_ch import udp_messenger
 from mission_configs import *
 
@@ -39,7 +40,7 @@ spacex_messenger = udp_messenger("10.42.0.1", 5005,
 
 # Initialize loggers
 low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
-high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
+high_frequency_logger = high_mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
 
 
 # Initialize segmentors
@@ -82,7 +83,7 @@ try:
         handle_received_commands()  # execute all commands in the command buffer
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
 
-        low_frequency_logger.log_data(low_frequency_data_retriever, console=True)  # Log the low frequency data
+        low_frequency_logger.log_data(low_frequency_data_retriever, console=False)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever, console=False)  # Log the high frequency data.
 
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
