@@ -80,7 +80,7 @@ RESET_PIN = 27
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
 LOW_DATA_RETRIEVAL_FREQUENCY = 20  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 1100  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 1500  # Hz
 SPI_FREQUENCY_HERCULES = 1000000  # Hz
 
 # Chip selects for the SPI link
@@ -95,7 +95,7 @@ CHIP_SELECT_CONFIG_HIGH_FREQUENCY = [(CS0, False), (CS1, True), (CS2, False)]
 CHIP_SELECT_CONFIG_LOW_FREQUENCY = [(CS0, True), (CS1, True), (CS2, False)]
 
 # Length of packets expected from the Hercules SPI link
-HIGH_FREQUENCY_PACKET_LENGTH = 20  # times 16 bits
+HIGH_FREQUENCY_PACKET_LENGTH = 28  # times 16 bits
 LOW_FREQUENCY_PACKET_LENGTH = 99  # times 16 bits
 
 # Define standard packet protocols for the SPI

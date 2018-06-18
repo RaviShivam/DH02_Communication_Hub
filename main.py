@@ -19,11 +19,11 @@ initialize_Hub()
 
 # initialize loggers
 low_frequency_logger = mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
-                                      file=LOW_FREQUENCY_LOG_FILE,
+                                      filename=LOW_FREQUENCY_LOG_FILE,
                                       handle_data=HANDLE_LOG)
 
 high_frequency_logger = mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
-                                       file=HIGH_FREQUENCY_LOG_FILE,
+                                       filename=HIGH_FREQUENCY_LOG_FILE,
                                        handle_data=HANDLE_LOG)
 
 # Initialize hercules communication module

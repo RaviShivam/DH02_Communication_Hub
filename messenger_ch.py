@@ -56,7 +56,7 @@ class temporal_messenger:
 
 
 class mission_logger:
-    def __init__(self, logger_name, file, handle_data):
+    def __init__(self, logger_name, filename, handle_data):
         # Setup identity
         self.name = logger_name
         self.handle_data = handle_data
@@ -64,9 +64,9 @@ class mission_logger:
 
         # Setup logger
         self.logger = logging.getLogger(logger_name)
-        file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
-        open(file, 'w')
-        hdlr = logging.FileHandler(file)
+        filename = filename + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
+        open(filename, 'w')  # create file if not exist
+        hdlr = logging.FileHandler(filename)
         hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
         self.logger.addHandler(hdlr)
         self.logger.setLevel(logging.INFO)
@@ -245,10 +245,10 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = new_data
 
     def send_command(self, command):
-         decoded_command = MASTER_PREFIX
-         for comm in command:
-             decoded_command = decoded_command + self.int2bits16(int(comm))
-         self.xfer16(decoded_command, self.command_config)
+        decoded_command = MASTER_PREFIX
+        for comm in command:
+            decoded_command = decoded_command + self.int2bits16(int(comm))
+        self.xfer16(decoded_command, self.command_config)
 
     def INITIALIZE_HERCULES(self):
         """
