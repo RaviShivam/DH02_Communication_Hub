@@ -14,7 +14,6 @@ def HANDLE_SPACEX_DATA(fullresponse):
     team_id = TEAM_ID
     status = SPACEX_POD_STATE[complete[INDEX_POD_STATE]] if complete[INDEX_POD_STATE] in SPACEX_POD_STATE else 1
 
-
     accelaration = int(parse_16s_to_float(complete[INDEX_ACCELARATION], complete[INDEX_ACCELARATION + 1]) * 100)
     position = int(parse_16s_to_float(complete[INDEX_POSITION], complete[INDEX_POSITION + 1]) * 100)
     velocity = int(parse_16s_to_float(complete[INDEX_VELOCITY], complete[INDEX_VELOCITY + 1]) * 100)
@@ -29,7 +28,6 @@ def HANDLE_SPACEX_DATA(fullresponse):
     packer = struct.Struct('>BBlllllllL')
     return packer.pack(team_id, status, accelaration, position, velocity, battery_voltage, battery_current, battery_temp,
                        pod_temperature, stripe_count)
-
 
 def HANDLE_LOG(data):
     return ", ".join(str(x) for x in data)

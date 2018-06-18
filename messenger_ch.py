@@ -214,18 +214,16 @@ class spi16bit:
 
 
 class hercules_comm_module(temporal_messenger, spi16bit):
-    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data=None, logger=None):
+    def __init__(self, retrieving_frequency, request_packet, comm_config, logger=None):
         super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
         self.latest_data = None
         self.request_packet = request_packet
         self.comm_config = comm_config
-        self.handle_data = handle_data
         self.logger = logger
 
     def request_data(self):
         if self.time_for_sending_data():
-            raw_data = self.xfer16(self.request_packet, self.comm_config)
-            self.latest_data = raw_data if self.handle_data is None else self.handle_data(raw_data)
+            self.latest_data = self.xfer16(self.request_packet, self.comm_config)
             self.logger.queue.put(self.latest_data)
             self.reset_last_action_timer()
         return self.latest_data
