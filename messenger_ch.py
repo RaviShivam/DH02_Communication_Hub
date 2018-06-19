@@ -268,7 +268,6 @@ class data_segmentor:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
-    parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0)
 
     def SEGMENT_MC_DATA(fullresponse):
         return (str(fullresponse[0]), str(fullresponse[1]))
@@ -277,6 +276,7 @@ class data_segmentor:
         return ", ".join(str(x) for x in data)
 
     def SEGMENT_HIGH_LOGGER(data):
+        parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
         process_data = [parse_16s_to_float(data[1], data[2]),
                         parse_16s_to_float(data[3], data[4]),
                         data[5],
@@ -292,6 +292,7 @@ class data_segmentor:
 
     def SEGMENT_SPACEX_DATA(fullresponse):
         # TODO: Recheck all the indices are correct
+        parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
         data = []
         data.append(TEAM_ID)
         if fullresponse[INDEX_POD_STATE] in SPACEX_POD_STATE:
