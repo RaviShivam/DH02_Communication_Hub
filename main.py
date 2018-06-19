@@ -38,8 +38,8 @@ spacex_messenger = udp_messenger("10.42.0.1", 5005,
 
 
 # Initialize loggers
-low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
-high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
+low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE, data_segmentor.SEGMENT_LOW_LOGGER)
+high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE, data_segmentor.SEGMENT_HIGH_LOGGER)
 
 
 def handle_received_commands():

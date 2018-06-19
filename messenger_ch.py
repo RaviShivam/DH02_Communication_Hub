@@ -52,8 +52,12 @@ class temporal_messenger:
 
 
 class mission_logger:
-    def __init__(self, logger_name, file):
+    def __init__(self, logger_name, file, segmentor):
+        # Setup identity
         self.name = logger_name
+        self.segment_data = segmentor
+
+        # Setup logger
         self.logger = logging.getLogger(logger_name)
         file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
         open(file, 'w')
@@ -64,21 +68,8 @@ class mission_logger:
 
     def log_data(self, logging_instance, console=False):
         if logging_instance.has_new_data:
-            raw = logging_instance.latest_data
-            log_data = []
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[1] << 16 | raw[2]), 'x').zfill(8))) if raw[2] is not 0 or raw[1] is not 0 else 0)
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[3] << 16 | raw[4]), 'x').zfill(8))) if raw[4] is not 0 or raw[3] is not 0 else 0)
-
-            #log_data.append(raw[5])
-
-            log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[6] << 16 | raw[7]), 'x').zfill(8))) if raw[7] is not 0 or raw[6] is not 0 else 0)
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[8] << 16 | raw[9]), 'x').zfill(8))) if raw[9] is not 0 or raw[8] is not 0 else 0)
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[10] << 16 | raw[11]), 'x').zfill(8))) if raw[11] is not 0 or raw[10] is not 0 else 0)
-            log_data.append(raw[12])
-            log_data.append(raw[13])
-
+            log_data = self.segment_data(logging_instance.latest_data)
             self.logger.info(log_data)
-
             if console:
                 print("{}: {}".format(self.name, log_data))
             logging_instance.has_new_data = False
@@ -277,10 +268,30 @@ class data_segmentor:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
+    parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0)
+
     def SEGMENT_MC_DATA(fullresponse):
         return (str(fullresponse[0]), str(fullresponse[1]))
 
+    def SEGMENT_LOW_LOGGER(data):
+        return ", ".join(str(x) for x in data)
+
+    def SEGMENT_HIGH_LOGGER(data):
+        process_data = [parse_16s_to_float(data[1], data[2]),
+                        parse_16s_to_float(data[3], data[4]),
+                        data[5],
+                        parse_16s_to_float(data[6], data[7]),
+                        parse_16s_to_float(data[8], data[9]),
+                        parse_16s_to_float(data[10], data[11]),
+                        data[12], data[13],
+                        parse_16s_to_float(data[14], data[15]),
+                        parse_16s_to_float(data[16], data[17]),
+                        parse_16s_to_float(data[18], data[19]),
+                        ]
+        return ", ".join(str(x) for x in process_data)
+
     def SEGMENT_SPACEX_DATA(fullresponse):
+        # TODO: Recheck all the indices are correct
         data = []
         data.append(TEAM_ID)
         if fullresponse[INDEX_POD_STATE] in SPACEX_POD_STATE:
