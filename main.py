@@ -29,8 +29,8 @@ hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_freq
 
 # Initialize network messengers
 mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
-                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC,
-                            data_segmentor.SEGMENT_MC_DATA)
+                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC_LOW,
+                            SENDING_FREQUENCY_MC_HIGH, data_segmentor.SEGMENT_MC_DATA)
 
 spacex_messenger = udp_messenger("10.42.0.1", 5005,
                                 SENDING_FREQUENCY_SPACEX,
@@ -41,9 +41,6 @@ spacex_messenger = udp_messenger("10.42.0.1", 5005,
 low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
 high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
 
-
-# Initialize segmentors
-data_segmentor = data_segmentor()
 
 def handle_received_commands():
     """
@@ -89,9 +86,9 @@ try:
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
-        # else:
-            # print("Disconnected... Entering reconnection state.")
-            # trigger_reconnecting_state()
+        else:
+            print("Disconnected... Entering reconnection state.")
+            trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     gpio.output(BRAKE_PIN, gpio.LOW)

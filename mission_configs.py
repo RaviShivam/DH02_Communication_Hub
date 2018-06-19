@@ -38,7 +38,8 @@ Mission Control constants
 MILLIS = 1000.0
 MQTT_BROKER_IP = 'localhost'
 MQTT_BROKER_PORT = 1883
-DATA_TOPIC = "data"
+LOW_DATA_TOPIC = "data/low"
+HIGH_DATA_TOPIC = "data/high"
 COMMAND_TOPIC = "mc/command"
 HEARTBEAT_TOPIC = "mc/heartbeat"
 EMERGENCY_BRAKE_COMMAND = 0x0dec
@@ -47,7 +48,8 @@ RESET_COMMAND = 0x0ffff
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
 # TODO: Make second timeout while accelerating.
-SENDING_FREQUENCY_MC = 10  # p/second
+SENDING_FREQUENCY_MC_LOW = 10  # p/second
+SENDING_FREQUENCY_MC_HIGH = 20  # p/second
 
 """
 Constants for sending SPI packages to Hercules

@@ -80,30 +80,35 @@ class mission_logger:
             self.logger.info(log_data)
 
             if console:
-                print("{}: {}".format(self.name, log_data)) 
+                print("{}: {}".format(self.name, log_data))
             logging_instance.has_new_data = False
 
 
-class mc_messenger(temporal_messenger):
+class mc_messenger():
     """
     Responsible for handling all communication with the mission control. This includes sending data and receiving command
     from the mission control, but also reconnecting and triggering emergency brake if applicable.
     """
 
-    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, sending_frequency, segmentor):
+    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, high_frequency, low_frequency, segmentor):
         """
         Intializes the MQTT client which is responsible for receiving messages from the mission control.
         :param client: The initialized client MQTT client
         :param mc_heartbeat_timeout: The timeout for heartbeat from the mission control (which checks if the mission control is functional)
         :param sending_frequency: The frequency at which the pod will send sensor data to the mission control.
         """
-        super(mc_messenger, self).__init__(sending_frequency)
         self.segment_data = segmentor
-        self.data_topic = DATA_TOPIC
+        self.low_data_topic = LOW_DATA_TOPIC
+        self.high_data_topic = HIGH_DATA_TOPIC
         self.command_topic = COMMAND_TOPIC
         self.heartbeat_topic = HEARTBEAT_TOPIC
 
+        # Check for sending frequencies
+        self.lowf_messenger = temporal_messenger(low_frequency)
+        self.highf_messenger = temporal_messenger(high_frequency)
+
         # Heartbeat configurations
+        self.current_time_millis = lambda: time.time() * MILLIS
         self.heartbeat_timeout = mc_heartbeat_timeout
         self.last_heartbeat = self.current_time_millis()
         self.is_mc_alive = lambda: (self.current_time_millis() - self.last_heartbeat) < self.heartbeat_timeout
@@ -179,12 +184,16 @@ class mc_messenger(temporal_messenger):
         :param data: Data sent to the mission control.
         :return: None
         """
-        if self.time_for_sending_data():
-            if data[0] is None:
-                return None
-            data = self.segment_data(data)
-            self.client.publish(self.data_topic, data, qos=0)
-            self.reset_last_action_timer()
+        if data[0] is None or data[1] is None:
+            # TODO: Send and error message
+            return None
+        low_data, high_data = self.segment_data(data)
+        if self.lowf_messenger.time_for_sending_data():
+            self.client.publish(self.low_data_topic, low_data, qos=0)
+            self.lowf_messenger.reset_last_action_timer()
+        if self.highf_messenger.time_for_sending_data():
+            self.client.publish(self.high_data_topic, high_data, qos=0)
+            self.highf_messenger.reset_last_action_timer()
 
     def TRIGGER_RESET(self):
         """
@@ -269,7 +278,7 @@ class data_segmentor:
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
     def SEGMENT_MC_DATA(fullresponse):
-        return str(fullresponse[0] + fullresponse[1])
+        return (str(fullresponse[0]), str(fullresponse[1]))
 
     def SEGMENT_SPACEX_DATA(fullresponse):
         data = []
