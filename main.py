@@ -72,6 +72,22 @@ def trigger_reconnecting_state():
     print("Reconnected. Entering normal state")
     gpio.output(BRAKE_PIN, True)
 
+def initialize_hercules():
+    while True:
+        response_prefix = []
+        for _ in range(10):
+            hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
+            response_prefix.append(low_frequency_data_retriever.latest_data[0])
+            response_prefix.append(high_frequency_data_retriever.latest_data[0])
+        response_prefix = [x == SLAVE_PREFIX for x in response_prefix]
+        if all(response_prefix):
+            break
+        mc_messenger.TRIGGER_RESET()
+        time.sleep(1)
+
+
+initialize_hercules()
+
 # boolean for running the main loop
 run = True
 try:
