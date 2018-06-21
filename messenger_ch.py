@@ -118,13 +118,6 @@ class mc_messenger():
         # Any to 16 bit converter. Does not handle overflow
         self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
-    def is_int(self, num):
-        try:
-            int(num)
-        except ValueError:
-            return False
-        return True
-
     def on_connect(self, client, userdata, flags, rc):
         """
         Callback called when the connect function is called. Here all the client connects to all the necessary topics.
@@ -150,7 +143,8 @@ class mc_messenger():
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
-            state_switch = int(command.split(",")[0])
+            state_switch, arg1, arg2 = command.split(",")
+            state_switch = int(state_switch) if isinstance(state_switch, int) else state_switch
             if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
                 print("Pod Stop Command issued")
@@ -158,13 +152,13 @@ class mc_messenger():
                 self.TRIGGER_RESET()
                 print("Reset command issued")
             else:
-                message = self.decode(msg.payload)
+                message = self.decode([state_switch, arg1, arg2])
                 self.COMMAND_BUFFER.put(message)
 
     def decode(self, message):
-        message = message.decode().split(",")
-        if not all(self.is_int(item) for item in message):
-            message = [99, 99]
+        if not all(isinstance(item, int) for item in message):
+            # TODO: Send error message back to mission control.
+            message = [99, 99, 99]
         message = [self.int2bits16(int(x)) for x in message]
         return message
 
