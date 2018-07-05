@@ -50,7 +50,10 @@ def handle_received_commands():
     """
     while not mc_messenger.COMMAND_BUFFER.empty():
         command = mc_messenger.COMMAND_BUFFER.get()
-        hercules_messenger.send_command(command)
+        if command[0] == RESET_COMMAND:
+            self.TRIGGER_RESET()
+        else:
+            hercules_messenger.send_command(command)
 
 
 def trigger_reconnecting_state():
@@ -72,21 +75,8 @@ def trigger_reconnecting_state():
     print("Reconnected. Entering normal state")
     gpio.output(BRAKE_PIN, True)
 
-def initialize_hercules():
-    while True:
-        response_prefix = []
-        for _ in range(10):
-            hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
-            response_prefix.append(low_frequency_data_retriever.latest_data[0])
-            response_prefix.append(high_frequency_data_retriever.latest_data[0])
-        response_prefix = [x == SLAVE_PREFIX for x in response_prefix]
-        if all(response_prefix):
-            break
-        mc_messenger.TRIGGER_RESET()
-        time.sleep(1)
-
-
-initialize_hercules()
+# Do not start main loop unless hercules is not synced
+hercules_messenger.INITIALIZE_HERCULES()
 
 # boolean for running the main loop
 run = True
@@ -95,6 +85,7 @@ try:
         handle_received_commands()  # execute all commands in the command buffer
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
 
+        data =
         low_frequency_logger.log_data(low_frequency_data_retriever, console=False)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever, console=False)  # Log the high frequency data.
 

@@ -145,12 +145,10 @@ class mc_messenger():
         if topic == self.command_topic:
             state_switch, arg1, arg2 = command.split(",")
             state_switch = int(state_switch) if isinstance(state_switch, int) else state_switch
+            # Immediate trigger brake (no queue needed)
             if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
                 print("Pod Stop Command issued")
-            elif state_switch == RESET_COMMAND:
-                self.TRIGGER_RESET()
-                print("Reset command issued")
             else:
                 message = self.decode([state_switch, arg1, arg2])
                 self.COMMAND_BUFFER.put(message)
@@ -179,19 +177,6 @@ class mc_messenger():
         if self.highf_messenger.time_for_sending_data():
             self.client.publish(self.high_data_topic, high_data, qos=0)
             self.highf_messenger.reset_last_action_timer()
-
-    def TRIGGER_RESET(self):
-        """
-        Triggers the reset of the Hercules by setting RESET_PIN low for 1 second
-        :return : None
-        """
-        def trigger():
-            gpio.output(RESET_PIN, gpio.LOW)
-            time.sleep(1)
-            gpio.output(RESET_PIN, gpio.HIGH)
-
-        t = Thread(target=trigger)
-        t.start()
 
     def TRIGGER_EMERGENCY_BRAKE(self):
         """
@@ -257,6 +242,36 @@ class hercules_messenger(spi16bit):
         command = [MASTER_PREFIX] + command
         self.xfer16(command, self.command_config)
 
+    def TRIGGER_RESET(self):
+        """
+        Triggers the reset of the Hercules by setting RESET_PIN low for 1 second
+        :return : None
+        """
+        def trigger():
+            gpio.output(RESET_PIN, gpio.LOW)
+            time.sleep(1)
+            gpio.output(RESET_PIN, gpio.HIGH)
+
+        t = Thread(target=trigger)
+        t.start()
+
+    def INITIALIZE_HERCULES(self):
+        """
+        Trigger resets untill the correct sequence of data is received from the hercules.
+        :return : None
+        """
+        while True:
+            response_prefix = []
+            for _ in range(10):
+                self.poll_latest_data()
+                # Save received prefixes.
+                response_prefix.append(self.data_modules[0].latest_data[0])
+                response_prefix.append(self.data_modules[1].latest_data[0])
+            response_prefix = [x == SLAVE_PREFIX for x in response_prefix]
+            if all(response_prefix):
+                break
+            self.TRIGGER_RESET()
+            time.sleep(1)
 
 class data_segmentor:
     """
