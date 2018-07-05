@@ -4,8 +4,8 @@ from mission_configs import *
 import RPi.GPIO as gpio
 
 messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
-                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC,
-                            data_segmentor.SEGMENT_MC_DATA)
+                         HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC,
+                         data_handlers.HANDLE_MC_DATA)
 
 dummy_data = list(range(125))
 
@@ -28,11 +28,11 @@ class TestStringMethods(unittest.TestCase):
         gpio.setup(BRAKE_PIN, gpio.OUT)
 
     def test_mc_segmentor(self):
-        segmented = data_segmentor.SEGMENT_MC_DATA(fullresponse=dummy_data)
+        segmented = data_handlers.HANDLE_MC_DATA(fullresponse=dummy_data)
         self.assertEqual(segmented, str(dummy_data))
 
     def test_spacex_segmentor(self):
-        segmented = data_segmentor.SEGMENT_SPACEX_DATA(fullresponse=dummy_data)
+        segmented = data_handlers.HANDLE_SPACEX_DATA(fullresponse=dummy_data)
         packer = struct.Struct('>BBlllllllL')
         data = packer.unpack(segmented)
         self.assertEqual(data, (1, 1, 124, 122, 123, 16, 100, 100, 100, 100))

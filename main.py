@@ -1,7 +1,7 @@
 import RPi.GPIO as gpio
 import os
 import time
-from messenger_ch import data_segmentor
+from messenger_ch import data_handlers
 from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
 from messenger_ch import mc_messenger
@@ -18,10 +18,11 @@ initialize_GPIO()
 
 # Initialize hercules communication module
 low_frequency_data_retriever = hercules_comm_module(LOW_DATA_RETRIEVAL_FREQUENCY, LOW_FREQUENCY_REQUEST_PACKET,
-                                                    CHIP_SELECT_CONFIG_LOW_FREQUENCY)
+                                                    CHIP_SELECT_CONFIG_LOW_FREQUENCY, data_handlers.HANDLE_LOW_F_DATA)
 
 high_frequency_data_retriever = hercules_comm_module(HIGH_DATA_RETRIEVAL_FREQUENCY, HIGH_FREQUENCY_REQUEST_PACKET,
-                                                     CHIP_SELECT_CONFIG_HIGH_FREQUENCY)
+                                                     CHIP_SELECT_CONFIG_HIGH_FREQUENCY,
+                                                     data_handlers.HANDLE_HIGH_F_DATA)
 
 # Initialize hardware messenger
 hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever],
@@ -30,16 +31,13 @@ hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_freq
 # Initialize network messengers
 mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
                             HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC_LOW,
-                            SENDING_FREQUENCY_MC_HIGH, data_segmentor.SEGMENT_MC_DATA)
+                            SENDING_FREQUENCY_MC_HIGH, data_handlers.HANDLE_MC_DATA)
 
-spacex_messenger = udp_messenger("10.42.0.1", 5005,
-                                SENDING_FREQUENCY_SPACEX,
-                                data_segmentor.SEGMENT_SPACEX_DATA)
-
+spacex_messenger = udp_messenger(IP_ADRESS_SPACEX, PORT_SPACEX, SENDING_FREQUENCY_SPACEX)
 
 # Initialize loggers
-low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE, data_segmentor.SEGMENT_LOW_LOGGER)
-high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE, data_segmentor.SEGMENT_HIGH_LOGGER)
+low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
+high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
 
 
 def handle_received_commands():
@@ -51,7 +49,7 @@ def handle_received_commands():
     while not mc_messenger.COMMAND_BUFFER.empty():
         command = mc_messenger.COMMAND_BUFFER.get()
         if command[0] == RESET_COMMAND:
-            self.TRIGGER_RESET()
+            hercules_messenger.TRIGGER_RESET()
         else:
             hercules_messenger.send_command(command)
 
@@ -68,12 +66,13 @@ def trigger_reconnecting_state():
         low_frequency_logger.log_data(low_frequency_data_retriever)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever)  # Log the high frequency data.
 
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)  # Send SpaceX data.
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             break
     print("Reconnected. Entering normal state")
     gpio.output(BRAKE_PIN, True)
+
 
 # Do not start main loop unless hercules is not synced
 hercules_messenger.INITIALIZE_HERCULES()
@@ -85,11 +84,10 @@ try:
         handle_received_commands()  # execute all commands in the command buffer
         hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
 
-        data =
         low_frequency_logger.log_data(low_frequency_data_retriever, console=False)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever, console=False)  # Log the high frequency data.
 
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data) # Send SpaceX data.
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)  # Send SpaceX data.
 
         if mc_messenger.is_mc_alive():  # Check if the mission control is alive
             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.

@@ -19,6 +19,7 @@ spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = SPI_FREQUENCY_HERCULES
 
+
 class temporal_messenger:
     """
     The basic interface implemented by all messengers in used during the mission.
@@ -174,6 +175,7 @@ class mc_messenger():
         if self.lowf_messenger.time_for_sending_data():
             self.client.publish(self.low_data_topic, low_data, qos=0)
             self.lowf_messenger.reset_last_action_timer()
+
         if self.highf_messenger.time_for_sending_data():
             self.client.publish(self.high_data_topic, high_data, qos=0)
             self.highf_messenger.reset_last_action_timer()
@@ -184,6 +186,7 @@ class mc_messenger():
         This is done on a seperate thread to avoid main thread falling asleep.
         :return: None
         """
+
         def trigger():
             gpio.output(BRAKE_PIN, gpio.LOW)
             time.sleep(1)
@@ -191,7 +194,6 @@ class mc_messenger():
 
         t = Thread(target=trigger)
         t.start()
-
 
 
 class spi16bit:
@@ -209,16 +211,18 @@ class spi16bit:
 
 
 class hercules_comm_module(temporal_messenger, spi16bit):
-    def __init__(self, retrieving_frequency, request_packet, comm_config):
+    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data):
         super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
         self.latest_data = None
         self.has_new_data = False
         self.request_packet = request_packet
         self.comm_config = comm_config
+        self.handle_data = handle_data
 
     def request_data(self):
         if self.time_for_sending_data():
-            self.latest_data = self.xfer16(self.request_packet, self.comm_config)
+            raw_data = self.xfer16(self.request_packet, self.comm_config)
+            self.latest_data = self.handle_data(raw_data)
             self.has_new_data = True
             self.reset_last_action_timer()
         return self.latest_data
@@ -247,6 +251,7 @@ class hercules_messenger(spi16bit):
         Triggers the reset of the Hercules by setting RESET_PIN low for 1 second
         :return : None
         """
+
         def trigger():
             gpio.output(RESET_PIN, gpio.LOW)
             time.sleep(1)
@@ -273,19 +278,41 @@ class hercules_messenger(spi16bit):
             self.TRIGGER_RESET()
             time.sleep(1)
 
-class data_segmentor:
+
+class udp_messenger(temporal_messenger):
+    def __init__(self, ip_adress, port, sending_frequency, handle_data):
+        super(udp_messenger, self).__init__(sending_frequency)
+        self.TARGET_IP = ip_adress
+        self.TARGET_PORT = port
+        self.handle_data = handle_data
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    def send_data(self, data):
+        if self.time_for_sending_data():
+            if len(data) < 125:
+                return None
+            data = self.handle_data(data)
+            self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
+            self.reset_last_action_timer()
+
+
+class data_handlers:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
 
-    def SEGMENT_MC_DATA(fullresponse):
+    def HANDLE_MC_DATA(fullresponse):
         return (str(fullresponse[0]), str(fullresponse[1]))
 
-    def SEGMENT_LOW_LOGGER(data):
-        return ", ".join(str(x) for x in data)
+    def HANDLE_LOW_F_DATA(data):
+        # Keep option open for processing low frequency data.
+        return data
 
-    def SEGMENT_HIGH_LOGGER(data):
-        parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
+    def HANDLE_HIGH_F_DATA(data):
+        parse_16s_to_float = lambda x1, x2: struct.unpack('>f',
+                                                          bytes.fromhex(format((x1 << 16 | x2),
+                                                                               'x').zfill(
+                                                              8))) if x1 is not 0 or x2 is not 0 else 0
         process_data = [parse_16s_to_float(data[1], data[2]),
                         parse_16s_to_float(data[3], data[4]),
                         data[5],
@@ -295,13 +322,11 @@ class data_segmentor:
                         data[12], data[13],
                         parse_16s_to_float(data[14], data[15]),
                         parse_16s_to_float(data[16], data[17]),
-                        parse_16s_to_float(data[18], data[19]),
+                        parse_16s_to_float(data[18], data[19])
                         ]
-        return ", ".join(str(x) for x in process_data)
+        return process_data
 
-    def SEGMENT_SPACEX_DATA(fullresponse):
-        # TODO: Recheck all the indices are correct
-        parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
+    def HANDLE_SPACEX_DATA(fullresponse):
         data = []
         data.append(TEAM_ID)
         if fullresponse[INDEX_POD_STATE] in SPACEX_POD_STATE:
@@ -318,19 +343,3 @@ class data_segmentor:
         data.append(fullresponse[INDEX_STRIPE_COUNT])
         packer = struct.Struct('>BBlllllllL')
         return packer.pack(*data)
-
-class udp_messenger(temporal_messenger):
-    def __init__(self, ip_adress, port, sending_frequency, segment_data):
-        super(udp_messenger, self).__init__(sending_frequency)
-        self.TARGET_IP = ip_adress
-        self.TARGET_PORT = port
-        self.segment_data = segment_data
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    def send_data(self, data):
-        if self.time_for_sending_data():
-            if len(data) < 125:
-                return None
-            data = self.segment_data(data)
-            self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
-            self.reset_last_action_timer()
