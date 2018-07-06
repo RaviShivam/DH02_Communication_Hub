@@ -53,10 +53,10 @@ class temporal_messenger:
 
 
 class mission_logger:
-    def __init__(self, logger_name, file, segmentor):
+    def __init__(self, logger_name, file, handle_data):
         # Setup identity
         self.name = logger_name
-        self.segment_data = segmentor
+        self.handle_data = handle_data
 
         # Setup logger
         self.logger = logging.getLogger(logger_name)
@@ -69,7 +69,7 @@ class mission_logger:
 
     def log_data(self, logging_instance, console=False):
         if logging_instance.has_new_data:
-            log_data = self.segment_data(logging_instance.latest_data)
+            log_data = self.handle_data(logging_instance.latest_data)
             self.logger.info(log_data)
             if console:
                 print("{}: {}".format(self.name, log_data))
@@ -270,6 +270,8 @@ class hercules_messenger(spi16bit):
             for _ in range(10):
                 self.poll_latest_data()
                 # Save received prefixes.
+                # TODO: What to send to spacex when receive None
+
                 response_prefix.append(self.data_modules[0].latest_data[0])
                 response_prefix.append(self.data_modules[1].latest_data[0])
             response_prefix = [x == SLAVE_PREFIX for x in response_prefix]
@@ -309,10 +311,9 @@ class data_handlers:
         return data
 
     def HANDLE_HIGH_F_DATA(data):
-        parse_16s_to_float = lambda x1, x2: struct.unpack('>f',
-                                                          bytes.fromhex(format((x1 << 16 | x2),
-                                                                               'x').zfill(
-                                                              8))) if x1 is not 0 or x2 is not 0 else 0
+        parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
+            format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
+
         process_data = [parse_16s_to_float(data[1], data[2]),
                         parse_16s_to_float(data[3], data[4]),
                         data[5],
@@ -343,3 +344,6 @@ class data_handlers:
         data.append(fullresponse[INDEX_STRIPE_COUNT])
         packer = struct.Struct('>BBlllllllL')
         return packer.pack(*data)
+
+    def HANDLE_LOG(data):
+        return ", ".join(x for x in data)

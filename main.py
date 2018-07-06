@@ -33,11 +33,12 @@ mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
                             HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC_LOW,
                             SENDING_FREQUENCY_MC_HIGH, data_handlers.HANDLE_MC_DATA)
 
-spacex_messenger = udp_messenger(IP_ADRESS_SPACEX, PORT_SPACEX, SENDING_FREQUENCY_SPACEX)
+spacex_messenger = udp_messenger(IP_ADRESS_SPACEX, PORT_SPACEX, SENDING_FREQUENCY_SPACEX,
+                                 data_handlers.HANDLE_SPACEX_DATA)
 
 # Initialize loggers
-low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE)
-high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE)
+low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE, data_handlers.HANDLE_LOG)
+high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE, data_handlers.HANDLE_LOG)
 
 
 def handle_received_commands():
@@ -75,6 +76,7 @@ def trigger_reconnecting_state():
 
 
 # Do not start main loop unless hercules is not synced
+time.sleep(1)
 hercules_messenger.INITIALIZE_HERCULES()
 
 # boolean for running the main loop
