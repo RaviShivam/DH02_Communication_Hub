@@ -59,8 +59,8 @@ LOW_DATA_TOPIC = "data/low"
 HIGH_DATA_TOPIC = "data/high"
 COMMAND_TOPIC = "mc/command"
 HEARTBEAT_TOPIC = "mc/heartbeat"
-EMERGENCY_BRAKE_COMMAND = 0x0dec
-RESET_COMMAND = 0x0ffff
+EMERGENCY_BRAKE_COMMAND = 0x0dec # 3564
+RESET_COMMAND = 0x0ffff # 65535
 
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
@@ -73,7 +73,7 @@ LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
 
 # Define functional pins on the Communication Hub
 BRAKE_PIN = 12
-RESET_PIN = 22
+RESET_PIN = 26
 
 #######################################################################################################################
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################

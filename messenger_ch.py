@@ -116,8 +116,13 @@ class mc_messenger():
         # Command buffer will be filled with incoming commands from MC.
         self.COMMAND_BUFFER = Queue()
 
-        # Any to 16 bit converter. Does not handle overflow
-        self.int2bits16 = lambda x: [(x >> 8), x & 255]
+
+    def isint(self, x):
+        try:
+            int(x)
+            return True
+        except ValueError:
+            return False
 
     def on_connect(self, client, userdata, flags, rc):
         """
@@ -143,23 +148,20 @@ class mc_messenger():
         """
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
-        print(command)
         if topic == self.command_topic:
-            state_switch, arg1, arg2 = command.split(",")
-            state_switch = int(state_switch) if isinstance(state_switch, int) else state_switch
+            state_switch, arg1, arg2 = self.sanity_check(command.split(","))
             # Immediate trigger brake (no queue needed)
             if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
                 print("Pod Stop Command issued")
             else:
-                message = self.decode([state_switch, arg1, arg2])
-                self.COMMAND_BUFFER.put(message)
+                self.COMMAND_BUFFER.put([state_switch, arg1, arg2])
 
-    def decode(self, message):
-        if not all(isinstance(item, int) for item in message):
-            # TODO: Send error message back to mission control.
-            message = [99, 99, 99]
-        message = [self.int2bits16(int(x)) for x in message]
+
+    def sanity_check(self, message):
+        if not all(self.isint(item) for item in message):
+            message = [404, 404, 404]
+        message = [int(x) for x in message]
         return message
 
     def send_data(self, data):
@@ -235,6 +237,7 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = []
         self.data_modules = data_modules
         self.command_config = command_config
+        # Any to 16 bit converter. Does not handle overflow
         self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
     def poll_latest_data(self):
@@ -244,42 +247,39 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = new_data
 
     def send_command(self, command):
-        command = [MASTER_PREFIX] + command
-        print(self.xfer16(command, self.command_config))
-
-    def TRIGGER_RESET(self):
-        """
-        Triggers the reset of the Hercules by setting RESET_PIN low for 1 second
-        :return : None
-        """
-
-        def trigger():
-            gpio.output(RESET_PIN, gpio.LOW)
-            time.sleep(1)
-            gpio.output(RESET_PIN, gpio.HIGH)
-
-        t = Thread(target=trigger)
-        t.start()
+        decoded_command = [self.int2bits16(int(x)) for x in command]
+        decoded_command = [MASTER_PREFIX] + command
+        self.xfer16(decoded_command, self.command_config)
 
     def INITIALIZE_HERCULES(self):
         """
         Trigger resets untill the correct sequence of data is received from the hercules.
         :return : None
         """
+        print("(Re)Initializing hercules")
+        gpio.output(RESET_PIN, gpio.LOW)
+        time.sleep(0.5)
+        gpio.output(RESET_PIN, gpio.HIGH)
+        c = 0
         while True:
             response_prefix = []
             for _ in range(10):
                 self.poll_latest_data()
                 # Save received prefixes.
-                print(self.data_modules[0].latest_data)
                 response_prefix.append(self.data_modules[0].latest_data[0])
-                response_prefix.append(self.data_modules[1].latest_data[0])
-            print(response_prefix)
-            response_prefix = [x == SLAVE_PREFIX for x in response_prefix]
+            response_prefix = [x == 0x200 for x in response_prefix]
             if all(response_prefix):
+                print("Initialized hercules succesfully!")
                 break
-            self.TRIGGER_RESET()
-            time.sleep(1)
+            gpio.output(RESET_PIN, gpio.LOW)
+            time.sleep(0.5)
+            gpio.output(RESET_PIN, gpio.HIGH)
+
+            if (c == 20):
+                print("Unable to reinitialize hercules")
+                break
+            time.sleep(0.5)
+            c += 1
 
 
 class udp_messenger(temporal_messenger):
@@ -313,7 +313,7 @@ class data_handlers:
 
     def HANDLE_HIGH_F_DATA(data):
         parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
-            format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
+            format((x1 << 16 | x2), 'x').zfill(8)))[0] if x1 is not 0 or x2 is not 0 else 0
 
         process_data = [data[0],                                    # prefix 
                         parse_16s_to_float(data[1], data[2]),       # projected position
@@ -328,6 +328,19 @@ class data_handlers:
                         parse_16s_to_float(data[16], data[17]),     # Gyr y
                         parse_16s_to_float(data[18], data[19])      # Gyr z
                         ]
+        #process_data = [data[0],                                    # prefix 
+        #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
+        #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
+        #                data[5],                                    # motor rpm 
+        #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
+        #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
+        #                parse_16s_to_float(0x41a0, 0xfc50),       # projected velocity
+        #                data[12],                                   # Diffuse left
+        #                data[13],                                   # Diffuse right
+        #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
+        #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
+        #                parse_16s_to_float(0x41a0, 0xfc50),       # projected velocity
+        #                ]
         return process_data
 
     def HANDLE_SPACEX_DATA(fullresponse):

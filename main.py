@@ -50,7 +50,7 @@ def handle_received_commands():
     while not mc_messenger.COMMAND_BUFFER.empty():
         command = mc_messenger.COMMAND_BUFFER.get()
         if command[0] == RESET_COMMAND:
-            hercules_messenger.TRIGGER_RESET()
+            hercules_messenger.INITIALIZE_HERCULES()
         else:
             hercules_messenger.send_command(command)
 
@@ -76,8 +76,8 @@ def trigger_reconnecting_state():
 
 
 # Do not start main loop unless hercules is not synced
-#time.sleep(1)
-#hercules_messenger.INITIALIZE_HERCULES()
+time.sleep(1)
+hercules_messenger.INITIALIZE_HERCULES()
 
 # boolean for running the main loop
 run = True
@@ -88,9 +88,9 @@ try:
 
         low_frequency_logger.log_data(low_frequency_data_retriever, console=False)  # Log the low frequency data
         high_frequency_logger.log_data(high_frequency_data_retriever, console=False)  # Log the high frequency data.
-
+#
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)  # Send SpaceX data.
-
+#
         mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
 
         # if mc_messenger.is_mc_alive():  # Check if the mission control is alive
