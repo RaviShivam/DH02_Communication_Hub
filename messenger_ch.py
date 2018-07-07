@@ -270,10 +270,10 @@ class hercules_messenger(spi16bit):
             for _ in range(10):
                 self.poll_latest_data()
                 # Save received prefixes.
-                # TODO: What to send to spacex when receive None
-
+                print(self.data_modules[0].latest_data)
                 response_prefix.append(self.data_modules[0].latest_data[0])
                 response_prefix.append(self.data_modules[1].latest_data[0])
+            print(response_prefix)
             response_prefix = [x == SLAVE_PREFIX for x in response_prefix]
             if all(response_prefix):
                 break
