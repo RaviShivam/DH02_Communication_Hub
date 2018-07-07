@@ -143,6 +143,7 @@ class mc_messenger():
         """
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
+        print(command)
         if topic == self.command_topic:
             state_switch, arg1, arg2 = command.split(",")
             state_switch = int(state_switch) if isinstance(state_switch, int) else state_switch
@@ -244,7 +245,7 @@ class hercules_messenger(spi16bit):
 
     def send_command(self, command):
         command = [MASTER_PREFIX] + command
-        self.xfer16(command, self.command_config)
+        print(self.xfer16(command, self.command_config))
 
     def TRIGGER_RESET(self):
         """
@@ -314,16 +315,18 @@ class data_handlers:
         parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
             format((x1 << 16 | x2), 'x').zfill(8))) if x1 is not 0 or x2 is not 0 else 0
 
-        process_data = [parse_16s_to_float(data[1], data[2]),
-                        parse_16s_to_float(data[3], data[4]),
-                        data[5],
-                        parse_16s_to_float(data[6], data[7]),
-                        parse_16s_to_float(data[8], data[9]),
-                        parse_16s_to_float(data[10], data[11]),
-                        data[12], data[13],
-                        parse_16s_to_float(data[14], data[15]),
-                        parse_16s_to_float(data[16], data[17]),
-                        parse_16s_to_float(data[18], data[19])
+        process_data = [data[0],                                    # prefix 
+                        parse_16s_to_float(data[1], data[2]),       # projected position
+                        parse_16s_to_float(data[3], data[4]),       # projected velocity
+                        data[5],                                    # motor rpm 
+                        parse_16s_to_float(data[6], data[7]),       # acceleration X
+                        parse_16s_to_float(data[8], data[9]),       # acceleration Y
+                        parse_16s_to_float(data[10], data[11]),     # acceleration Z
+                        data[12],                                   # Diffuse left
+                        data[13],                                   # Diffuse right
+                        parse_16s_to_float(data[14], data[15]),     # Gyr x
+                        parse_16s_to_float(data[16], data[17]),     # Gyr y
+                        parse_16s_to_float(data[18], data[19])      # Gyr z
                         ]
         return process_data
 
@@ -346,4 +349,4 @@ class data_handlers:
         return packer.pack(*data)
 
     def HANDLE_LOG(data):
-        return ", ".join(x for x in data)
+        return ", ".join(str(x) for x in data)

@@ -84,9 +84,9 @@ HIGH_DATA_RETRIEVAL_FREQUENCY = 400  # Hz
 SPI_FREQUENCY_HERCULES = 2000000  # Hz
 
 # Chip selects for the SPI link
-CS0 = 16
+CS0 = 21
 CS1 = 20
-CS2 = 21
+CS2 = 16
 ALL_CS = [CS0, CS1, CS2]
 
 # Communication chip selects

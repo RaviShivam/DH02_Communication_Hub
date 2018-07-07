@@ -76,8 +76,8 @@ def trigger_reconnecting_state():
 
 
 # Do not start main loop unless hercules is not synced
-time.sleep(1)
-hercules_messenger.INITIALIZE_HERCULES()
+#time.sleep(1)
+#hercules_messenger.INITIALIZE_HERCULES()
 
 # boolean for running the main loop
 run = True
