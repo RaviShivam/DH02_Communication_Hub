@@ -159,7 +159,7 @@ class mc_messenger():
 
 
     def sanity_check(self, message):
-        if not all(self.isint(item) for item in message):
+        if len(message) != 3 or not all(self.isint(item) for item in message):
             message = [404, 404, 404]
         message = [int(x) for x in message]
         return message
