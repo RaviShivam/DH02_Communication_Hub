@@ -19,6 +19,7 @@ spi = spidev.SpiDev()
 spi.open(0, 0)
 spi.max_speed_hz = SPI_FREQUENCY_HERCULES
 
+
 class temporal_messenger:
     """
     The basic interface implemented by all messengers in used during the mission.
@@ -52,8 +53,12 @@ class temporal_messenger:
 
 
 class mission_logger:
-    def __init__(self, logger_name, file):
+    def __init__(self, logger_name, file, handle_data):
+        # Setup identity
         self.name = logger_name
+        self.handle_data = handle_data
+
+        # Setup logger
         self.logger = logging.getLogger(logger_name)
         file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
         open(file, 'w')
@@ -64,46 +69,38 @@ class mission_logger:
 
     def log_data(self, logging_instance, console=False):
         if logging_instance.has_new_data:
-            raw = logging_instance.latest_data
-            log_data = []
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[1] << 16 | raw[2]), 'x').zfill(8))) if raw[2] is not 0 or raw[1] is not 0 else 0)
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[3] << 16 | raw[4]), 'x').zfill(8))) if raw[4] is not 0 or raw[3] is not 0 else 0)
-
-            #log_data.append(raw[5])
-
-            log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[6] << 16 | raw[7]), 'x').zfill(8))) if raw[7] is not 0 or raw[6] is not 0 else 0)
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[8] << 16 | raw[9]), 'x').zfill(8))) if raw[9] is not 0 or raw[8] is not 0 else 0)
-            #log_data.append(struct.unpack('>f', bytes.fromhex(format((raw[10] << 16 | raw[11]), 'x').zfill(8))) if raw[11] is not 0 or raw[10] is not 0 else 0)
-            log_data.append(raw[12])
-            log_data.append(raw[13])
-
+            log_data = self.handle_data(logging_instance.latest_data)
             self.logger.info(log_data)
-
             if console:
-                print("{}: {}".format(self.name, log_data)) 
+                print("{}: {}".format(self.name, log_data))
             logging_instance.has_new_data = False
 
 
-class mc_messenger(temporal_messenger):
+class mc_messenger():
     """
     Responsible for handling all communication with the mission control. This includes sending data and receiving command
     from the mission control, but also reconnecting and triggering emergency brake if applicable.
     """
 
-    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, sending_frequency, segmentor):
+    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, high_frequency, low_frequency, segmentor):
         """
         Intializes the MQTT client which is responsible for receiving messages from the mission control.
         :param client: The initialized client MQTT client
         :param mc_heartbeat_timeout: The timeout for heartbeat from the mission control (which checks if the mission control is functional)
         :param sending_frequency: The frequency at which the pod will send sensor data to the mission control.
         """
-        super(mc_messenger, self).__init__(sending_frequency)
         self.segment_data = segmentor
-        self.data_topic = DATA_TOPIC
+        self.low_data_topic = LOW_DATA_TOPIC
+        self.high_data_topic = HIGH_DATA_TOPIC
         self.command_topic = COMMAND_TOPIC
         self.heartbeat_topic = HEARTBEAT_TOPIC
 
+        # Check for sending frequencies
+        self.lowf_messenger = temporal_messenger(low_frequency)
+        self.highf_messenger = temporal_messenger(high_frequency)
+
         # Heartbeat configurations
+        self.current_time_millis = lambda: time.time() * MILLIS
         self.heartbeat_timeout = mc_heartbeat_timeout
         self.last_heartbeat = self.current_time_millis()
         self.is_mc_alive = lambda: (self.current_time_millis() - self.last_heartbeat) < self.heartbeat_timeout
@@ -119,15 +116,13 @@ class mc_messenger(temporal_messenger):
         # Command buffer will be filled with incoming commands from MC.
         self.COMMAND_BUFFER = Queue()
 
-        # Any to 16 bit converter. Does not handle overflow
-        self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
-    def is_int(self, num):
+    def isint(self, x):
         try:
-            int(num)
+            int(x)
+            return True
         except ValueError:
             return False
-        return True
 
     def on_connect(self, client, userdata, flags, rc):
         """
@@ -154,22 +149,19 @@ class mc_messenger(temporal_messenger):
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
-            state_switch = int(command.split(",")[0])
+            state_switch, arg1, arg2 = self.sanity_check(command.split(","))
+            # Immediate trigger brake (no queue needed)
             if state_switch == EMERGENCY_BRAKE_COMMAND:
                 self.TRIGGER_EMERGENCY_BRAKE()
                 print("Pod Stop Command issued")
-            elif state_switch == RESET_COMMAND:
-                self.TRIGGER_RESET()
-                print("Reset command issued")
             else:
-                message = self.decode(msg.payload)
-                self.COMMAND_BUFFER.put(message)
+                self.COMMAND_BUFFER.put([state_switch, arg1, arg2])
 
-    def decode(self, message):
-        message = message.decode().split(",")
-        if not all(self.is_int(item) for item in message):
-            message = [99, 99]
-        message = [self.int2bits16(int(x)) for x in message]
+
+    def sanity_check(self, message):
+        if not all(self.isint(item) for item in message):
+            message = [404, 404, 404]
+        message = [int(x) for x in message]
         return message
 
     def send_data(self, data):
@@ -179,25 +171,16 @@ class mc_messenger(temporal_messenger):
         :param data: Data sent to the mission control.
         :return: None
         """
-        if self.time_for_sending_data():
-            if data[0] is None:
-                return None
-            data = self.segment_data(data)
-            self.client.publish(self.data_topic, data, qos=0)
-            self.reset_last_action_timer()
+        if data[0] is None or data[1] is None:
+            return None
+        low_data, high_data = self.segment_data(data)
+        if self.lowf_messenger.time_for_sending_data():
+            self.client.publish(self.low_data_topic, low_data, qos=0)
+            self.lowf_messenger.reset_last_action_timer()
 
-    def TRIGGER_RESET(self):
-        """
-        Triggers the reset of the Hercules by setting RESET_PIN low for 1 second
-        :return : None
-        """
-        def trigger():
-            gpio.output(RESET_PIN, gpio.LOW)
-            time.sleep(1)
-            gpio.output(RESET_PIN, gpio.HIGH)
-
-        t = Thread(target=trigger)
-        t.start()
+        if self.highf_messenger.time_for_sending_data():
+            self.client.publish(self.high_data_topic, high_data, qos=0)
+            self.highf_messenger.reset_last_action_timer()
 
     def TRIGGER_EMERGENCY_BRAKE(self):
         """
@@ -205,6 +188,7 @@ class mc_messenger(temporal_messenger):
         This is done on a seperate thread to avoid main thread falling asleep.
         :return: None
         """
+
         def trigger():
             gpio.output(BRAKE_PIN, gpio.LOW)
             time.sleep(1)
@@ -212,7 +196,6 @@ class mc_messenger(temporal_messenger):
 
         t = Thread(target=trigger)
         t.start()
-
 
 
 class spi16bit:
@@ -230,16 +213,18 @@ class spi16bit:
 
 
 class hercules_comm_module(temporal_messenger, spi16bit):
-    def __init__(self, retrieving_frequency, request_packet, comm_config):
+    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data):
         super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
         self.latest_data = None
         self.has_new_data = False
         self.request_packet = request_packet
         self.comm_config = comm_config
+        self.handle_data = handle_data
 
     def request_data(self):
         if self.time_for_sending_data():
-            self.latest_data = self.xfer16(self.request_packet, self.comm_config)
+            raw_data = self.xfer16(self.request_packet, self.comm_config)
+            self.latest_data = self.handle_data(raw_data)
             self.has_new_data = True
             self.reset_last_action_timer()
         return self.latest_data
@@ -251,6 +236,7 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = []
         self.data_modules = data_modules
         self.command_config = command_config
+        # Any to 16 bit converter. Does not handle overflow
         self.int2bits16 = lambda x: [(x >> 8), x & 255]
 
     def poll_latest_data(self):
@@ -260,18 +246,104 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = new_data
 
     def send_command(self, command):
-        command = [MASTER_PREFIX] + command
-        self.xfer16(command, self.command_config)
+        decoded_command = [self.int2bits16(int(x)) for x in command]
+        decoded_command = [MASTER_PREFIX] + decoded_command
+        self.xfer16(decoded_command, self.command_config)
+
+    def INITIALIZE_HERCULES(self):
+        """
+        Trigger resets untill the correct sequence of data is received from the hercules.
+        :return : None
+        """
+        print("(Re)Initializing hercules")
+        gpio.output(RESET_PIN, gpio.LOW)
+        time.sleep(0.5)
+        gpio.output(RESET_PIN, gpio.HIGH)
+        c = 0
+        while True:
+            response_prefix = []
+            for _ in range(10):
+                self.poll_latest_data()
+                # Save received prefixes.
+                response_prefix.append(self.data_modules[0].latest_data[0])
+            print("Received reponse: {}".format(response_prefix))
+            response_prefix = [x == 0x200 for x in response_prefix]
+            if all(response_prefix):
+                print("Initialized hercules succesfully!")
+                break
+            gpio.output(RESET_PIN, gpio.LOW)
+            time.sleep(0.5)
+            gpio.output(RESET_PIN, gpio.HIGH)
+
+            if (c == 20):
+                print("Unable to reinitialize hercules")
+                break
+            time.sleep(0.5)
+            c += 1
 
 
-class data_segmentor:
+class udp_messenger(temporal_messenger):
+    def __init__(self, ip_adress, port, sending_frequency, handle_data):
+        super(udp_messenger, self).__init__(sending_frequency)
+        self.TARGET_IP = ip_adress
+        self.TARGET_PORT = port
+        self.handle_data = handle_data
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    def send_data(self, data):
+        if self.time_for_sending_data():
+            if len(data) < 125:
+                return None
+            data = self.handle_data(data)
+            self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
+            self.reset_last_action_timer()
+
+
+class data_handlers:
     """
     This class is responsible for preparing the data for sending to both SpaceX and the Hyperloop Mission Control.
     """
-    def SEGMENT_MC_DATA(fullresponse):
-        return str(fullresponse[0] + fullresponse[1])
 
-    def SEGMENT_SPACEX_DATA(fullresponse):
+    def HANDLE_MC_DATA(fullresponse):
+        return (str(fullresponse[0]), str(fullresponse[1]))
+
+    def HANDLE_LOW_F_DATA(data):
+        # Keep option open for processing low frequency data.
+        return data
+
+    def HANDLE_HIGH_F_DATA(data):
+        parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
+            format((x1 << 16 | x2), 'x').zfill(8)))[0] if x1 is not 0 or x2 is not 0 else 0
+
+        process_data = [data[0],                                    # prefix 
+                        parse_16s_to_float(data[1], data[2]),       # projected position
+                        parse_16s_to_float(data[3], data[4]),       # projected velocity
+                        data[5],                                    # motor rpm 
+                        parse_16s_to_float(data[6], data[7]),       # acceleration X
+                        parse_16s_to_float(data[8], data[9]),       # acceleration Y
+                        parse_16s_to_float(data[10], data[11]),     # acceleration Z
+                        data[12],                                   # Diffuse left
+                        data[13],                                   # Diffuse right
+                        parse_16s_to_float(data[14], data[15]),     # Gyr x
+                        parse_16s_to_float(data[16], data[17]),     # Gyr y
+                        parse_16s_to_float(data[18], data[19])      # Gyr z
+                        ]
+        #process_data = [data[0],                                    # prefix 
+        #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
+        #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
+        #                data[5],                                    # motor rpm 
+        #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
+        #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
+        #                parse_16s_to_float(0x41a0, 0xfc50),       # projected velocity
+        #                data[12],                                   # Diffuse left
+        #                data[13],                                   # Diffuse right
+        #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
+        #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
+        #                parse_16s_to_float(0x41a0, 0xfc50),       # projected velocity
+        #                ]
+        return process_data
+
+    def HANDLE_SPACEX_DATA(fullresponse):
         data = []
         data.append(TEAM_ID)
         if fullresponse[INDEX_POD_STATE] in SPACEX_POD_STATE:
@@ -289,18 +361,5 @@ class data_segmentor:
         packer = struct.Struct('>BBlllllllL')
         return packer.pack(*data)
 
-class udp_messenger(temporal_messenger):
-    def __init__(self, ip_adress, port, sending_frequency, segment_data):
-        super(udp_messenger, self).__init__(sending_frequency)
-        self.TARGET_IP = ip_adress
-        self.TARGET_PORT = port
-        self.segment_data = segment_data
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    def send_data(self, data):
-        if self.time_for_sending_data():
-            if len(data) < 125:
-                return None
-            data = self.segment_data(data)
-            self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
-            self.reset_last_action_timer()
+    def HANDLE_LOG(data):
+        return ", ".join(str(x) for x in data)
