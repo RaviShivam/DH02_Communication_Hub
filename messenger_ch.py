@@ -1,4 +1,3 @@
-import RPi.GPIO as gpio
 import json
 import logging
 import socket
@@ -6,10 +5,14 @@ import spidev
 import threading
 import time
 import struct
+import multiprocessing
+
+import RPi.GPIO as gpio
 import paho.mqtt.client as mqtt
+
 from queue import Queue
 from threading import Thread
-
+from multiprocessing import Process
 from mission_configs import *
 
 """
@@ -52,6 +55,32 @@ class temporal_messenger:
         self.last_action = self.current_time_millis()
 
 
+class multi_mission_logger:
+    def __init__(self, logger_name, file, handle_data):
+        # Setup identity
+        self.name = logger_name
+        self.handle_data = handle_data
+        self.queue = multiprocessing.Queue(-1)
+
+        # Setup logger
+        self.logger = logging.getLogger(logger_name)
+        file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
+        open(file, 'w')
+        hdlr = logging.FileHandler(file)
+        hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+        self.logger.addHandler(hdlr)
+        self.logger.setLevel(logging.INFO)
+
+        logging_process = Process(target=self.logging_process, args=(self.queue,))
+        logging_process.start()
+
+    def logging_process(self, queue):
+        while (True):
+            if not queue.empty():
+                log_data = self.handle_data(queue.get())
+                self.logger.info(log_data)
+
+
 class mission_logger:
     def __init__(self, logger_name, file, handle_data):
         # Setup identity
@@ -67,13 +96,11 @@ class mission_logger:
         self.logger.addHandler(hdlr)
         self.logger.setLevel(logging.INFO)
 
-    def log_data(self, logging_instance, console=False):
-        if logging_instance.has_new_data:
-            log_data = self.handle_data(logging_instance.latest_data)
-            self.logger.info(log_data)
-            if console:
-                print("{}: {}".format(self.name, log_data))
-            logging_instance.has_new_data = False
+    def log(self, data, console=False):
+        log_data = self.handle_data(data)
+        self.logger.info(log_data)
+        if console:
+            print("{}: {}".format(self.name, log_data))
 
 
 class mc_messenger():
@@ -211,19 +238,19 @@ class spi16bit:
 
 
 class hercules_comm_module(temporal_messenger, spi16bit):
-    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data):
+    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data, logger=None):
         super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
         self.latest_data = None
-        self.has_new_data = False
         self.request_packet = request_packet
         self.comm_config = comm_config
         self.handle_data = handle_data
+        self.logger = logger
 
     def request_data(self):
         if self.time_for_sending_data():
             raw_data = self.xfer16(self.request_packet, self.comm_config)
             self.latest_data = self.handle_data(raw_data)
-            self.has_new_data = True
+            self.logger.log(self.latest_data)
             self.reset_last_action_timer()
         return self.latest_data
 

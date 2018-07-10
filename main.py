@@ -6,6 +6,7 @@ from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
 from messenger_ch import mc_messenger
 from messenger_ch import mission_logger
+from messenger_ch import multi_mission_logger
 from messenger_ch import udp_messenger
 from mission_configs import *
 
@@ -17,20 +18,30 @@ if not os.path.exists("/home/pi/DH02_Communication_Hub/logs"):
 initialize_GPIO()
 
 # Initialize loggers
-low_frequency_logger = mission_logger(LOGGER_NAME_LOW_FREQUENCY, LOW_FREQUENCY_LOG_FILE, HANDLE_LOG)
-high_frequency_logger = mission_logger(LOGGER_NAME_HIGH_FREQUENCY, HIGH_FREQUENCY_LOG_FILE, HANDLE_LOG)
+low_frequency_logger = multi_mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
+                                      file=LOW_FREQUENCY_LOG_FILE,
+                                      handle_data=HANDLE_LOG)
+
+high_frequency_logger = multi_mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
+                                       file=HIGH_FREQUENCY_LOG_FILE,
+                                       handle_data=HANDLE_LOG)
 
 # Initialize hercules communication module
-low_frequency_data_retriever = hercules_comm_module(LOW_DATA_RETRIEVAL_FREQUENCY, LOW_FREQUENCY_REQUEST_PACKET,
-                                                    CHIP_SELECT_CONFIG_LOW_FREQUENCY, HANDLE_LOW_F_DATA)
+low_frequency_data_retriever = hercules_comm_module(retrieving_frequency=LOW_DATA_RETRIEVAL_FREQUENCY,
+                                                    request_packet=LOW_FREQUENCY_REQUEST_PACKET,
+                                                    comm_config=CHIP_SELECT_CONFIG_LOW_FREQUENCY,
+                                                    handle_data=HANDLE_LOW_F_DATA,
+                                                    logger=low_frequency_logger)
 
-high_frequency_data_retriever = hercules_comm_module(HIGH_DATA_RETRIEVAL_FREQUENCY, HIGH_FREQUENCY_REQUEST_PACKET,
-                                                     CHIP_SELECT_CONFIG_HIGH_FREQUENCY,
-                                                     HANDLE_HIGH_F_DATA)
+high_frequency_data_retriever = hercules_comm_module(retrieving_frequency=HIGH_DATA_RETRIEVAL_FREQUENCY,
+                                                     request_packet=HIGH_FREQUENCY_REQUEST_PACKET,
+                                                     comm_config=CHIP_SELECT_CONFIG_HIGH_FREQUENCY,
+                                                     handle_data=HANDLE_HIGH_F_DATA,
+                                                     logger=high_frequency_logger)
 
 # Initialize hardware messenger
-hercules_messenger = hercules_messenger([low_frequency_data_retriever, high_frequency_data_retriever],
-                                        CHIP_SELECT_COMMAND)
+hercules_messenger = hercules_messenger(data_modules=[low_frequency_data_retriever, high_frequency_data_retriever],
+                                        command_config=CHIP_SELECT_COMMAND)
 
 # Initialize network messengers
 mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
@@ -75,7 +86,7 @@ def trigger_reconnecting_state():
 
 # Sync message alignment with hercules at startup.
 time.sleep(1)
-#hercules_messenger.INITIALIZE_HERCULES()
+# hercules_messenger.INITIALIZE_HERCULES()
 
 # Boolean for running the main loop
 run = True
