@@ -79,8 +79,8 @@ RESET_PIN = 26
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
-LOW_DATA_RETRIEVAL_FREQUENCY = 10  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 100  # Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 0.0001  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 100000000 # Hz
 SPI_FREQUENCY_HERCULES = 2000000  # Hz
 
 # Chip selects for the SPI link
