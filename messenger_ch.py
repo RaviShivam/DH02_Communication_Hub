@@ -250,7 +250,7 @@ class hercules_comm_module(temporal_messenger, spi16bit):
         if self.time_for_sending_data():
             raw_data = self.xfer16(self.request_packet, self.comm_config)
             self.latest_data = self.handle_data(raw_data)
-            self.logger.log(self.latest_data)
+            self.logger.queue.put(self.latest_data)
             self.reset_last_action_timer()
         return self.latest_data
 

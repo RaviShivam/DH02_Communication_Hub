@@ -15,7 +15,7 @@ if not os.path.exists("/home/pi/DH02_Communication_Hub/logs"):
     os.makedirs("/home/pi/DH02_Communication_Hub/logs")
 
 # Set gpio pins used during the mission high.
-initialize_GPIO()
+initialize_Hub()
 
 # Initialize loggers
 low_frequency_logger = multi_mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
@@ -112,5 +112,6 @@ try:
         #     trigger_reconnecting_state()
 
 except KeyboardInterrupt:
-    gpio.output(BRAKE_PIN, gpio.LOW)
-    gpio.cleanup()
+    cleanup_Hub()
+
+cleanup_Hub()

@@ -79,8 +79,8 @@ RESET_PIN = 26
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
-LOW_DATA_RETRIEVAL_FREQUENCY = 0.0001  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 100000000 # Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 10000000  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 0.000001# Hz
 SPI_FREQUENCY_HERCULES = 2000000  # Hz
 
 # Chip selects for the SPI link
@@ -109,9 +109,9 @@ LOW_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(LOW_FRE
 
 
 #######################################################################################################################
-########################################### INITIALIZATION TOOLS ######################################################
+########################################### CONFIGURATION SCRIPTS #####################################################
 #######################################################################################################################
-def initialize_GPIO():
+def initialize_Hub():
     gpio.setwarnings(False)
     gpio.setmode(gpio.BCM)
     gpio.setup(BRAKE_PIN, gpio.OUT)
@@ -124,3 +124,9 @@ def initialize_GPIO():
     gpio.output(CS1, True)
     gpio.output(CS2, True)
     gpio.output(RESET_PIN, True)
+
+
+def cleanup_Hub():
+    gpio.output(BRAKE_PIN, gpio.LOW)
+    gpio.cleanup()
+
