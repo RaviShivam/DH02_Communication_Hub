@@ -38,7 +38,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(data, (1, 1, 124, 122, 123, 16, 100, 100, 100, 100))
 
 
-initialize_GPIO()
+initialize_Hub()
 unittest.main()
 gpio.output(BRAKE_PIN, gpio.LOW)
 gpio.cleanup()

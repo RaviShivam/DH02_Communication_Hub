@@ -59,8 +59,8 @@ LOW_DATA_TOPIC = "data/low"
 HIGH_DATA_TOPIC = "data/high"
 COMMAND_TOPIC = "mc/command"
 HEARTBEAT_TOPIC = "mc/heartbeat"
-EMERGENCY_BRAKE_COMMAND = 0x0dec # 3564
-RESET_COMMAND = 0x0ffff # 65535
+EMERGENCY_BRAKE_COMMAND = 0x0dec  # 3564
+RESET_COMMAND = 0x0ffff  # 65535
 
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
@@ -79,9 +79,9 @@ RESET_PIN = 26
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
-LOW_DATA_RETRIEVAL_FREQUENCY = 10  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 400  # Hz
-SPI_FREQUENCY_HERCULES = 2000000  # Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 1  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 1000  # Hz
+SPI_FREQUENCY_HERCULES = 37500000  # Hz
 
 # Chip selects for the SPI link
 CS0 = 21
@@ -109,9 +109,9 @@ LOW_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(LOW_FRE
 
 
 #######################################################################################################################
-########################################### INITIALIZATION TOOLS ######################################################
+########################################### CONFIGURATION SCRIPTS #####################################################
 #######################################################################################################################
-def initialize_GPIO():
+def initialize_Hub():
     gpio.setwarnings(False)
     gpio.setmode(gpio.BCM)
     gpio.setup(BRAKE_PIN, gpio.OUT)
@@ -124,3 +124,8 @@ def initialize_GPIO():
     gpio.output(CS1, True)
     gpio.output(CS2, True)
     gpio.output(RESET_PIN, True)
+
+
+def cleanup_Hub():
+    gpio.output(BRAKE_PIN, gpio.LOW)
+    gpio.cleanup()
