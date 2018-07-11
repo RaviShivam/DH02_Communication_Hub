@@ -6,7 +6,7 @@ from messenger_ch import hercules_comm_module
 from messenger_ch import hercules_messenger
 from messenger_ch import mc_messenger
 from messenger_ch import mission_logger
-from messenger_ch import multi_mission_logger
+from messenger_ch import mission_logger
 from messenger_ch import udp_messenger
 from mission_configs import *
 
@@ -17,12 +17,12 @@ if not os.path.exists("/home/pi/DH02_Communication_Hub/logs"):
 # Set gpio pins used during the mission high.
 initialize_Hub()
 
-# Initialize loggers
-low_frequency_logger = multi_mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
+# initialize loggers
+low_frequency_logger = mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
                                       file=LOW_FREQUENCY_LOG_FILE,
                                       handle_data=HANDLE_LOG)
 
-high_frequency_logger = multi_mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
+high_frequency_logger = mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
                                        file=HIGH_FREQUENCY_LOG_FILE,
                                        handle_data=HANDLE_LOG)
 
@@ -39,17 +39,23 @@ high_frequency_data_retriever = hercules_comm_module(retrieving_frequency=HIGH_D
                                                      handle_data=HANDLE_HIGH_F_DATA,
                                                      logger=high_frequency_logger)
 
-# Initialize hardware messenger
+# Initialize Hercules messenger
 hercules_messenger = hercules_messenger(data_modules=[low_frequency_data_retriever, high_frequency_data_retriever],
                                         command_config=CHIP_SELECT_COMMAND)
 
-# Initialize network messengers
-mc_messenger = mc_messenger(MQTT_BROKER_IP, MQTT_BROKER_PORT,
-                            HEARTBEAT_TIMEOUT_MC, SENDING_FREQUENCY_MC_LOW,
-                            SENDING_FREQUENCY_MC_HIGH, HANDLE_MC_DATA)
+# Initialize mission control messenger
+mc_messenger = mc_messenger(broker_ip=MQTT_BROKER_IP,
+                            broker_port=MQTT_BROKER_PORT,
+                            mc_heartbeat_timeout=HEARTBEAT_TIMEOUT_MC,
+                            low_frequency=SENDING_FREQUENCY_MC_LOW,
+                            high_frequency=SENDING_FREQUENCY_MC_HIGH,
+                            handle_data=HANDLE_MC_DATA)
 
-spacex_messenger = udp_messenger(IP_ADRESS_SPACEX, PORT_SPACEX, SENDING_FREQUENCY_SPACEX,
-                                 HANDLE_SPACEX_DATA)
+# Initialize SpaceX messenger
+spacex_messenger = udp_messenger(ip_adress=IP_ADRESS_SPACEX,
+                                 port=PORT_SPACEX,
+                                 sending_frequency=SENDING_FREQUENCY_SPACEX,
+                                 handle_data=HANDLE_SPACEX_DATA)
 
 
 def handle_received_commands():
@@ -73,12 +79,17 @@ def trigger_reconnecting_state():
     """
     gpio.output(BRAKE_PIN, False)
     while True:
-        handle_received_commands()  # execute all commands in the command buffer
-        hercules_messenger.poll_latest_data()  # retrieve data from hercules using data retrievers
+        # Execute all commands in the command buffer
+        handle_received_commands()
 
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)  # Send SpaceX data.
+        # Retrieve data from hercules using data retrievers
+        hercules_messenger.poll_latest_data()
 
-        if mc_messenger.is_mc_alive():  # Check if the mission control is alive
+        # Send SpaceX data.
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
+
+        # Check if the mission control is alive
+        if mc_messenger.is_mc_alive():
             break
     print("Reconnected. Entering normal state")
     gpio.output(BRAKE_PIN, True)
@@ -102,11 +113,12 @@ try:
         # Send SpaceX data.
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
-        # Send data to Mission Control.
-        mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
+        mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
-        # if mc_messenger.is_mc_alive():  # Check if the mission control is alive
-        #     mc_messenger.send_data(hercules_messenger.latest_retrieved_data)  # send data to mission control.
+        # # Check if the mission control is alive
+        # if mc_messenger.is_mc_alive():
+        #     # Send data to Mission Control.
+        #     mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
         # else:
         #     print("Disconnected... Entering reconnection state.")
         #     trigger_reconnecting_state()

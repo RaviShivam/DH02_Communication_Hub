@@ -1,4 +1,3 @@
-import json
 import logging
 import socket
 import spidev
@@ -55,7 +54,7 @@ class temporal_messenger:
         self.last_action = self.current_time_millis()
 
 
-class multi_mission_logger:
+class mission_logger:
     def __init__(self, logger_name, file, handle_data):
         # Setup identity
         self.name = logger_name
@@ -75,32 +74,10 @@ class multi_mission_logger:
         logging_process.start()
 
     def logging_process(self, queue):
-        while (True):
+        while True:
             if not queue.empty():
                 log_data = self.handle_data(queue.get())
                 self.logger.info(log_data)
-
-
-class mission_logger:
-    def __init__(self, logger_name, file, handle_data):
-        # Setup identity
-        self.name = logger_name
-        self.handle_data = handle_data
-
-        # Setup logger
-        self.logger = logging.getLogger(logger_name)
-        file = file + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
-        open(file, 'w')
-        hdlr = logging.FileHandler(file)
-        hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
-        self.logger.addHandler(hdlr)
-        self.logger.setLevel(logging.INFO)
-
-    def log(self, data, console=False):
-        log_data = self.handle_data(data)
-        self.logger.info(log_data)
-        if console:
-            print("{}: {}".format(self.name, log_data))
 
 
 class mc_messenger():
@@ -109,14 +86,14 @@ class mc_messenger():
     from the mission control, but also reconnecting and triggering emergency brake if applicable.
     """
 
-    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, high_frequency, low_frequency, segmentor):
+    def __init__(self, broker_ip, broker_port, mc_heartbeat_timeout, high_frequency, low_frequency, handle_data):
         """
         Intializes the MQTT client which is responsible for receiving messages from the mission control.
         :param client: The initialized client MQTT client
         :param mc_heartbeat_timeout: The timeout for heartbeat from the mission control (which checks if the mission control is functional)
         :param sending_frequency: The frequency at which the pod will send sensor data to the mission control.
         """
-        self.segment_data = segmentor
+        self.handle_data = handle_data
         self.low_data_topic = LOW_DATA_TOPIC
         self.high_data_topic = HIGH_DATA_TOPIC
         self.command_topic = COMMAND_TOPIC
@@ -198,7 +175,7 @@ class mc_messenger():
         """
         if data[0] is None or data[1] is None:
             return None
-        low_data, high_data = self.segment_data(data)
+        low_data, high_data = self.handle_data(data)
         if self.lowf_messenger.time_for_sending_data():
             self.client.publish(self.low_data_topic, low_data, qos=0)
             self.lowf_messenger.reset_last_action_timer()
@@ -231,13 +208,6 @@ class spi16bit:
             response.append(spi.xfer(packet))
             self.reset_CS_state()
         processed = [(i[0] << 8) + i[1] for i in response]
-        return processed
-
-    def fast_xfer16(self, data, cs_config):
-        [gpio.output(x[0], x[1]) for x in cs_config]
-        response = spi.xfer([0 for _ in range(2 * len(data))])
-        self.reset_CS_state()
-        processed = [(response[i] << 8) + response[i + 1] for i in range(0, len(response), 2)]
         return processed
 
     def reset_CS_state(self):
@@ -311,7 +281,7 @@ class hercules_messenger(spi16bit):
             time.sleep(0.5)
             gpio.output(RESET_PIN, gpio.HIGH)
 
-            if (c == 20):
+            if c == 20:
                 print("Unable to reinitialize hercules")
                 break
             time.sleep(0.5)
