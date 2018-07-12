@@ -210,6 +210,13 @@ class spi16bit:
         processed = [(i[0] << 8) + i[1] for i in response]
         return processed
 
+    def fast_xfer16(self, data, cs_config):
+        [gpio.output(x[0], x[1]) for x in cs_config]
+        response = spi.xfer([0 for _ in range(2 * len(data))])
+        self.reset_CS_state()
+        processed = [(response[i] << 8) + response[i + 1] for i in range(0, len(response), 2)]
+        return processed
+
     def reset_CS_state(self):
         [gpio.output(pin, True) for pin in ALL_CS]
 
@@ -286,23 +293,6 @@ class hercules_messenger(spi16bit):
                 break
             time.sleep(0.5)
             c += 1
-
-
-class udp_messenger(temporal_messenger):
-    def __init__(self, ip_adress, port, sending_frequency, handle_data):
-        super(udp_messenger, self).__init__(sending_frequency)
-        self.TARGET_IP = ip_adress
-        self.TARGET_PORT = port
-        self.handle_data = handle_data
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-    def send_data(self, data):
-        if self.time_for_sending_data():
-            if len(data) < 125:
-                return None
-            data = self.handle_data(data)
-            self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
-            self.reset_last_action_timer()
 
 
 class udp_messenger(temporal_messenger):
