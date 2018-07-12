@@ -28,19 +28,6 @@ def HANDLE_HIGH_F_DATA(data):
                     parse_16s_to_float(data[16], data[17]),  # Gyr y
                     parse_16s_to_float(data[18], data[19])  # Gyr z
                     ]
-    # process_data = [data[0],                                    # prefix
-    #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
-    #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
-    #                data[5],                                    # motor rpm
-    #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
-    #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
-    #                parse_16s_to_float(0x41a0, 0xfc50),       # projected velocity
-    #                data[12],                                   # Diffuse left
-    #                data[13],                                   # Diffuse right
-    #                parse_16s_to_float(0x411c, 0xfe72),       # projected position
-    #                parse_16s_to_float(0x41a0, 0xfc56),       # projected velocity
-    #                parse_16s_to_float(0x41a0, 0xfc50),       # projected velocity
-    #                ]
     return process_data
 
 
