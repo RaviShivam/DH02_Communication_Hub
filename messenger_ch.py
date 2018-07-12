@@ -202,12 +202,14 @@ class mc_messenger():
 
 class spi16bit:
     def xfer16(self, data, cs_config):
-        response = []
-        for packet in data:
-            [gpio.output(x[0], x[1]) for x in cs_config]
-            response.append(spi.xfer(packet))
-            self.reset_CS_state()
-        processed = [(i[0] << 8) + i[1] for i in response]
+        pdata = []
+        # Flatten list by iterative concatenation.
+        for p in data:
+            pdata = pdata + p
+        [gpio.output(x[0], x[1]) for x in cs_config]
+        response = spi.xfer(pdata)
+        self.reset_CS_state()
+        processed = [(response[i] << 8) + response[i+1] for i in range(0, len(response), 2)]
         return processed
 
     def reset_CS_state(self):

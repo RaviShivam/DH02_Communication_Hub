@@ -81,7 +81,7 @@ RESET_PIN = 26
 # Constants for sending SPI packages to Hercules
 LOW_DATA_RETRIEVAL_FREQUENCY = 1  # Hz
 HIGH_DATA_RETRIEVAL_FREQUENCY = 1000  # Hz
-SPI_FREQUENCY_HERCULES = 37500000  # Hz
+SPI_FREQUENCY_HERCULES = 5000000  # Hz
 
 # Chip selects for the SPI link
 CS0 = 21
