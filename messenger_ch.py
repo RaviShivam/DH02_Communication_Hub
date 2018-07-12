@@ -303,10 +303,9 @@ class udp_messenger(temporal_messenger):
         self.handle_data = handle_data
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    def send_data(self, data):
+    def send_data(self, full_data):
         if self.time_for_sending_data():
-            if len(data) < 125:
-                return None
-            data = self.handle_data(data)
+            data = self.handle_data(full_data)
+            print(data)
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_action_timer()
