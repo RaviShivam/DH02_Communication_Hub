@@ -12,7 +12,7 @@ POD_ACCELERATION_STATE = 0x0600
 # Constants that are defined for sending SpaceX UDP packages
 IP_ADRESS_SPACEX = "192.168.0.1"
 PORT_SPACEX = 3000
-SENDING_FREQUENCY_SPACEX = 5  # per seconds
+SENDING_FREQUENCY_SPACEX = 10  # per seconds
 
 # Creation of the UDP package.
 TEAM_ID = 1  # TODO: Should be changed during competition
@@ -66,7 +66,7 @@ MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
 # TODO: Make second timeout while accelerating.
 SENDING_FREQUENCY_MC_LOW = 10  # p/second
-SENDING_FREQUENCY_MC_HIGH = 20  # p/second
+SENDING_FREQUENCY_MC_HIGH = 30  # p/second
 
 LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
@@ -79,8 +79,8 @@ RESET_PIN = 26
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
-LOW_DATA_RETRIEVAL_FREQUENCY = 1  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 1000  # Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 100  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 1500  # Hz
 SPI_FREQUENCY_HERCULES = 5000000  # Hz
 
 # Chip selects for the SPI link
