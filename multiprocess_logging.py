@@ -10,7 +10,7 @@ start = time.time()
 c = 0
 while run:
     c += 1
-    print(spi.fast_xfer16(HIGH_FREQUENCY_REQUEST_PACKET, CHIP_SELECT_CONFIG_HIGH_FREQUENCY))
+    spi.fast_xfer16(LOW_FREQUENCY_REQUEST_PACKET, CHIP_SELECT_CONFIG_LOW_FREQUENCY)
     if time.time() - start > 5:
         run = False
 

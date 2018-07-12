@@ -19,6 +19,7 @@ Initialize the spidev module used to communicate with the Hercules board
 """
 spi = spidev.SpiDev()
 spi.open(0, 0)
+spi.bits_per_word = 8
 spi.max_speed_hz = SPI_FREQUENCY_HERCULES
 
 
@@ -212,10 +213,12 @@ class spi16bit:
 
     def fast_xfer16(self, data, cs_config):
         [gpio.output(x[0], x[1]) for x in cs_config]
-        response = spi.xfer([0 for _ in range(2 * len(data))])
+        #print(data)
+        #print(len([0 for _ in range(len(data))]))
+        response = spi.xfer([0 for _ in range(2*len(data))])
         self.reset_CS_state()
         processed = [(response[i] << 8) + response[i + 1] for i in range(0, len(response), 2)]
-        return processed
+        return processed 
 
     def reset_CS_state(self):
         [gpio.output(pin, True) for pin in ALL_CS]
