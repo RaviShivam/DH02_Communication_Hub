@@ -17,30 +17,29 @@ SENDING_FREQUENCY_SPACEX = 5  # per seconds
 # Creation of the UDP package.
 TEAM_ID = 1  # TODO: Should be changed during competition
 INDEX_POD_STATE = 2
-INDEX_ACCELARATION = 104
+INDEX_ACCELARATION = 105
 INDEX_POSITION = 101
-INDEX_VELOCITY = 102
-INDEX_BATTERY_VOLTAGE = 16
-INDEX_BATTERY_CURRENT = 100
-INDEX_BATTERY_TEMPERATURE = 100
-INDEX_POD_TEMPERATURE = 100
-INDEX_STRIPE_COUNT_LEFT = 107
-INDEX_STRIPE_COUNT_RIGHT = 108
+INDEX_VELOCITY = 103
+INDEX_BATTERY_VOLTAGE = 32
+INDEX_BATTERY_CURRENT = 33
+INDEX_BATTERY_TEMPERATURE = 28
+INDEX_POD_TEMPERATURE = 28
+INDEX_STRIPE_COUNT = 112
 
-# TODO: Verify these states are correct
 SPACEX_POD_STATE = {
-    0: 1,  # 0x0000
-    256: 1,  # 0x0100
-    512: 1,  # 0x0200
-    768: 1,  # 0x0300
-    1024: 1,  # 0x0400
-    1280: 2,  # 0x0500
-    1536: 3,  # 0x0600
-    1792: 5,  # 0x0700
-    2048: 2,  # 0x0800
-    2204: 2,  # 0x0900
-    2560: 4,  # 0x0A00
-    2816: 1  # 0x0B00
+    0: 1,  # 0x0000  (NONE)
+    256: 1,  # 0x0100 (IDLE)
+    512: 1,  # 0x0200 (TEST_A)
+    768: 1,  # 0x0300 (TEST_B)
+    1024: 1,  # 0x0400 (PUMPDOWN)
+    1280: 1,  # 0x0500 (TEST_C)
+    1536: 2,  # 0x0600 (READY)
+    1792: 3,  # 0x0700 (ACCELERATION)
+    2048: 5,  # 0x0800 (DECELERATION)
+    2204: 2,  # 0x0900 (STANDSTILL)
+    2560: 1,  # 0x0A00 (TEST_D)
+    2816: 1,  # 0x0B00 (TEST_E)
+    3072: 1  # 0x0C00 (CHARGING)
 }
 
 #######################################################################################################################

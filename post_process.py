@@ -2,6 +2,7 @@ import struct
 
 def HANDLE_HIGH_F_DATA(data):
     parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
+
         format((x1 << 16 | x2), 'x').zfill(8)))[0] if x1 is not 0 or x2 is not 0 else 0
 
     # process_data = [data[0],                                # prefix             (100)

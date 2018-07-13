@@ -20,8 +20,8 @@ def HANDLE_SPACEX_DATA(fullresponse):
     battery_current = complete[INDEX_BATTERY_CURRENT]
     battery_temp = complete[INDEX_BATTERY_TEMPERATURE]
 
-    pod_temperature = complete[INDEX_POD_TEMPERATURE]
-    stripe_count = max(complete[INDEX_STRIPE_COUNT_LEFT], complete[INDEX_STRIPE_COUNT_RIGHT])
+    pod_temperature = complete[INDEX_STRIPE_COUNT]
+    stripe_count = max(complete[INDEX_STRIPE_COUNT], complete[INDEX_STRIPE_COUNT + 1])
 
     packer = struct.Struct('>BBlllllllL')
     return packer.pack(team_id, accelaration, position, velocity, battery_voltage, battery_current, battery_temp,
