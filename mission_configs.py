@@ -72,21 +72,21 @@ LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
 
 # Define functional pins on the Communication Hub
-BRAKE_PIN = 12
-RESET_PIN = 26
+BRAKE_PIN = 19
+RESET_PIN = 27
 
 #######################################################################################################################
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
 LOW_DATA_RETRIEVAL_FREQUENCY = 100  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 1500  # Hz
-SPI_FREQUENCY_HERCULES = 5000000  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 1000  # Hz
+SPI_FREQUENCY_HERCULES = 1000000  # Hz
 
 # Chip selects for the SPI link
-CS0 = 21
-CS1 = 20
-CS2 = 16
+CS0 = 5
+CS1 = 6
+CS2 = 13
 ALL_CS = [CS0, CS1, CS2]
 
 # Communication chip selects
