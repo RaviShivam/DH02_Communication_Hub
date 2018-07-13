@@ -203,15 +203,6 @@ class mc_messenger():
 
 class spi16bit:
     def xfer16(self, data, cs_config):
-        response = []
-        for packet in data:
-            [gpio.output(x[0], x[1]) for x in cs_config]
-            response.append(spi.xfer(packet))
-            self.reset_CS_state()
-        processed = [(i[0] << 8) + i[1] for i in response]
-        return processed
-
-    def fast_xfer16(self, data, cs_config):
         [gpio.output(x[0], x[1]) for x in cs_config]
         response = spi.xfer(data)
         self.reset_CS_state()
@@ -233,7 +224,7 @@ class hercules_comm_module(temporal_messenger, spi16bit):
 
     def request_data(self):
         if self.time_for_sending_data():
-            raw_data = self.fast_xfer16(self.request_packet, self.comm_config)
+            raw_data = self.xfer16(self.request_packet, self.comm_config)
             self.latest_data = raw_data if self.handle_data is None else self.handle_data(raw_data)
             self.logger.queue.put(self.latest_data)
             self.reset_last_action_timer()
@@ -256,13 +247,10 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = new_data
 
     def send_command(self, command):
-        #decoded_command = [self.int2bits16(int(x)) for x in command]
-        #decoded_command = [MASTER_PREFIX] + decoded_command
-        #self.xfer16(decoded_command, self.command_config)
          decoded_command = MASTER_PREFIX
          for comm in command:
              decoded_command = decoded_command + self.int2bits16(int(comm))
-         self.fast_xfer16(decoded_command, self.command_config)
+         self.xfer16(decoded_command, self.command_config)
 
     def INITIALIZE_HERCULES(self):
         """
