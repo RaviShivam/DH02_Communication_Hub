@@ -96,17 +96,16 @@ CHIP_SELECT_CONFIG_HIGH_FREQUENCY = [(CS0, False), (CS1, True), (CS2, False)]
 CHIP_SELECT_CONFIG_LOW_FREQUENCY = [(CS0, True), (CS1, True), (CS2, False)]
 
 # Length of packets expected from the Hercules SPI link
-HIGH_FREQUENCY_PACKET_LENGTH = 40  # times 16 bits
+HIGH_FREQUENCY_PACKET_LENGTH = 20  # times 16 bits
 LOW_FREQUENCY_PACKET_LENGTH = 99  # times 16 bits
 
 # Define standard packet protocols for the SPI
-ZPACKET = [0x00, 0x00]
 MASTER_PREFIX = [0x0A, 0xAA]
 SLAVE_PREFIX = [0x02, 0x00]
 
 # Generate request packets for the SPI
-HIGH_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(HIGH_FREQUENCY_PACKET_LENGTH)]
-LOW_FREQUENCY_REQUEST_PACKET = [MASTER_PREFIX] + [ZPACKET for _ in range(LOW_FREQUENCY_PACKET_LENGTH)]
+HIGH_FREQUENCY_REQUEST_PACKET = MASTER_PREFIX + [0 for _ in range(HIGH_FREQUENCY_PACKET_LENGTH * 2)]
+LOW_FREQUENCY_REQUEST_PACKET = MASTER_PREFIX + [0 for _ in range(LOW_FREQUENCY_PACKET_LENGTH * 2)]
 
 
 #######################################################################################################################

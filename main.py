@@ -30,13 +30,11 @@ high_frequency_logger = mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
 low_frequency_data_retriever = hercules_comm_module(retrieving_frequency=LOW_DATA_RETRIEVAL_FREQUENCY,
                                                     request_packet=LOW_FREQUENCY_REQUEST_PACKET,
                                                     comm_config=CHIP_SELECT_CONFIG_LOW_FREQUENCY,
-                                                    handle_data=HANDLE_LOW_F_DATA,
                                                     logger=low_frequency_logger)
 
 high_frequency_data_retriever = hercules_comm_module(retrieving_frequency=HIGH_DATA_RETRIEVAL_FREQUENCY,
                                                      request_packet=HIGH_FREQUENCY_REQUEST_PACKET,
                                                      comm_config=CHIP_SELECT_CONFIG_HIGH_FREQUENCY,
-                                                     handle_data=HANDLE_HIGH_F_DATA,
                                                      logger=high_frequency_logger)
 
 # Initialize Hercules messenger

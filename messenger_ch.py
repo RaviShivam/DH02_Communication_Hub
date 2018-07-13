@@ -213,19 +213,17 @@ class spi16bit:
 
     def fast_xfer16(self, data, cs_config):
         [gpio.output(x[0], x[1]) for x in cs_config]
-        #print(data)
-        #print(len([0 for _ in range(len(data))]))
-        response = spi.xfer([0 for _ in range(2*len(data))])
+        response = spi.xfer(data)
         self.reset_CS_state()
         processed = [(response[i] << 8) + response[i + 1] for i in range(0, len(response), 2)]
-        return processed 
+        return processed
 
     def reset_CS_state(self):
         [gpio.output(pin, True) for pin in ALL_CS]
 
 
 class hercules_comm_module(temporal_messenger, spi16bit):
-    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data, logger=None):
+    def __init__(self, retrieving_frequency, request_packet, comm_config, handle_data=None, logger=None):
         super(hercules_comm_module, self).__init__(sending_frequency=retrieving_frequency)
         self.latest_data = None
         self.request_packet = request_packet
@@ -235,8 +233,8 @@ class hercules_comm_module(temporal_messenger, spi16bit):
 
     def request_data(self):
         if self.time_for_sending_data():
-            raw_data = self.xfer16(self.request_packet, self.comm_config)
-            self.latest_data = self.handle_data(raw_data)
+            raw_data = self.fast_xfer16(self.request_packet, self.comm_config)
+            self.latest_data = raw_data if self.handle_data is None else self.handle_data(raw_data)
             self.logger.queue.put(self.latest_data)
             self.reset_last_action_timer()
         return self.latest_data
@@ -258,9 +256,13 @@ class hercules_messenger(spi16bit):
         self.latest_retrieved_data = new_data
 
     def send_command(self, command):
-        decoded_command = [self.int2bits16(int(x)) for x in command]
-        decoded_command = [MASTER_PREFIX] + decoded_command
-        self.xfer16(decoded_command, self.command_config)
+        #decoded_command = [self.int2bits16(int(x)) for x in command]
+        #decoded_command = [MASTER_PREFIX] + decoded_command
+        #self.xfer16(decoded_command, self.command_config)
+         decoded_command = MASTER_PREFIX
+         for comm in command:
+             decoded_command = decoded_command + self.int2bits16(int(comm))
+         self.fast_xfer16(decoded_command, self.command_config)
 
     def INITIALIZE_HERCULES(self):
         """
@@ -309,6 +311,5 @@ class udp_messenger(temporal_messenger):
     def send_data(self, full_data):
         if self.time_for_sending_data():
             data = self.handle_data(full_data)
-            print(data)
             self.sock.sendto(data, (self.TARGET_IP, self.TARGET_PORT))
             self.reset_last_action_timer()
