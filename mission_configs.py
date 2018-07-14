@@ -10,7 +10,7 @@ This file contains all the relevant constants that can be adjusted prior to the 
 POD_ACCELERATION_STATE = 0x0600
 
 # Constants that are defined for sending SpaceX UDP packages
-IP_ADRESS_SPACEX = "192.168.0.10"
+IP_ADRESS_SPACEX = "192.168.0.1"
 PORT_SPACEX = 3000
 SENDING_FREQUENCY_SPACEX = 5  # per seconds
 

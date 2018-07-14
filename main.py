@@ -95,7 +95,7 @@ def trigger_reconnecting_state():
 
 # Sync message alignment with hercules at startup.
 time.sleep(1)
-hercules_messenger.INITIALIZE_HERCULES()
+#hercules_messenger.INITIALIZE_HERCULES()
 
 # Boolean for running the main loop
 run = True
