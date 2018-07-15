@@ -24,7 +24,7 @@ low_frequency_logger = mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
 
 high_frequency_logger = mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
                                        filename=HIGH_FREQUENCY_LOG_FILE,
-                                       handle_data=HANDLE_LOG)
+                                       handle_data=HANDLE_HIGH_F_PROCESSED)
 
 # Initialize hercules communication module
 low_frequency_data_retriever = hercules_comm_module(retrieving_frequency=LOW_DATA_RETRIEVAL_FREQUENCY,
@@ -95,7 +95,7 @@ def trigger_reconnecting_state():
 
 # Sync message alignment with hercules at startup.
 time.sleep(1)
-#hercules_messenger.INITIALIZE_HERCULES()
+hercules_messenger.INITIALIZE_HERCULES()
 
 # Boolean for running the main loop
 run = True
@@ -109,7 +109,7 @@ try:
         hercules_messenger.poll_latest_data()
 
         # Send SpaceX data.
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        #spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
         mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
 

@@ -5,44 +5,6 @@ This file contains all the relevant constants that can be adjusted prior to the 
 """
 
 #######################################################################################################################
-######################################### SPACEX MESSENGERS CONSTANTS #################################################
-#######################################################################################################################
-POD_ACCELERATION_STATE = 0x0600
-
-# Constants that are defined for sending SpaceX UDP packages
-IP_ADRESS_SPACEX = "192.168.0.1"
-PORT_SPACEX = 3000
-SENDING_FREQUENCY_SPACEX = 10  # per seconds
-
-# Creation of the UDP package.
-TEAM_ID = 1  # TODO: Should be changed during competition
-INDEX_POD_STATE = 2
-INDEX_ACCELARATION = 105
-INDEX_POSITION = 101
-INDEX_VELOCITY = 103
-INDEX_BATTERY_VOLTAGE = 32
-INDEX_BATTERY_CURRENT = 33
-INDEX_BATTERY_TEMPERATURE = 28
-INDEX_POD_TEMPERATURE = 28
-INDEX_STRIPE_COUNT = 112
-
-SPACEX_POD_STATE = {
-    0: 1,  # 0x0000  (NONE)
-    256: 1,  # 0x0100 (IDLE)
-    512: 1,  # 0x0200 (TEST_A)
-    768: 1,  # 0x0300 (TEST_B)
-    1024: 1,  # 0x0400 (PUMPDOWN)
-    1280: 1,  # 0x0500 (TEST_C)
-    1536: 2,  # 0x0600 (READY)
-    1792: 3,  # 0x0700 (ACCELERATION)
-    2048: 5,  # 0x0800 (DECELERATION)
-    2204: 1,  # 0x0900 (STANDSTILL)
-    2560: 1,  # 0x0A00 (TEST_D)
-    2816: 1,  # 0x0B00 (TEST_E)
-    3072: 1  # 0x0C00 (CHARGING)
-}
-
-#######################################################################################################################
 ########################################### DATA LOGGER CONSTANTS #####################################################
 #######################################################################################################################
 # TODO: Give file names better name.
@@ -66,14 +28,14 @@ MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
 # TODO: Make second timeout while accelerating.
 SENDING_FREQUENCY_MC_LOW = 10  # p/second
-SENDING_FREQUENCY_MC_HIGH = 30  # p/second
+SENDING_FREQUENCY_MC_HIGH = 10  # p/second
 
 LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
 
 # Define functional pins on the Communication Hub
 BRAKE_PIN = 19
-RESET_PIN = 27
+RESET_PINS = [17, 27]
 
 #######################################################################################################################
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
@@ -106,6 +68,45 @@ SLAVE_PREFIX = [0x02, 0x00]
 HIGH_FREQUENCY_REQUEST_PACKET = MASTER_PREFIX + [0 for _ in range(HIGH_FREQUENCY_PACKET_LENGTH * 2)]
 LOW_FREQUENCY_REQUEST_PACKET = MASTER_PREFIX + [0 for _ in range(LOW_FREQUENCY_PACKET_LENGTH * 2)]
 
+#######################################################################################################################
+######################################### SPACEX MESSENGERS CONSTANTS #################################################
+#######################################################################################################################
+POD_ACCELERATION_STATE = 0x0600
+
+# Constants that are defined for sending SpaceX UDP packages
+IP_ADRESS_SPACEX = "192.168.0.2"
+PORT_SPACEX = 3000
+SENDING_FREQUENCY_SPACEX = 10  # per seconds
+UDP_INDEX_OFFSET = LOW_FREQUENCY_PACKET_LENGTH + 1
+
+# Creation of the UDP package.
+TEAM_ID = 1  # TODO: Should be changed during competition
+INDEX_POD_STATE = 2
+INDEX_ACCELARATION = UDP_INDEX_OFFSET + 6
+INDEX_POSITION = UDP_INDEX_OFFSET + 1
+INDEX_VELOCITY = UDP_INDEX_OFFSET + 3
+INDEX_BATTERY_VOLTAGE = 32
+INDEX_BATTERY_CURRENT = 33
+INDEX_BATTERY_TEMPERATURE = 28
+INDEX_POD_TEMPERATURE = 28
+INDEX_STRIPE_COUNT = UDP_INDEX_OFFSET + 12
+
+SPACEX_POD_STATE = {
+    0: 1,  # 0x0000  (NONE)
+    256: 1,  # 0x0100 (IDLE)
+    512: 1,  # 0x0200 (TEST_A)
+    768: 1,  # 0x0300 (TEST_B)
+    1024: 1,  # 0x0400 (PUMPDOWN)
+    1280: 1,  # 0x0500 (TEST_C)
+    1536: 2,  # 0x0600 (READY)
+    1792: 3,  # 0x0700 (ACCELERATION)
+    2048: 5,  # 0x0800 (DECELERATION)
+    2204: 1,  # 0x0900 (STANDSTILL)
+    2560: 1,  # 0x0A00 (TEST_D)
+    2816: 1,  # 0x0B00 (TEST_E)
+    3072: 1  # 0x0C00 (CHARGING)
+}
+
 
 #######################################################################################################################
 ########################################### CONFIGURATION SCRIPTS #####################################################
@@ -117,12 +118,12 @@ def initialize_Hub():
     gpio.setup(CS0, gpio.OUT)
     gpio.setup(CS2, gpio.OUT)
     gpio.setup(CS1, gpio.OUT)
-    gpio.setup(RESET_PIN, gpio.OUT)
+    [gpio.setup(rp, gpio.OUT) for rp in RESET_PINS]
     gpio.output(BRAKE_PIN, True)
     gpio.output(CS0, True)
     gpio.output(CS1, True)
     gpio.output(CS2, True)
-    gpio.output(RESET_PIN, True)
+    [gpio.output(rp, True) for rp in RESET_PINS]
 
 
 def cleanup_Hub():

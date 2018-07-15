@@ -26,13 +26,12 @@ def HANDLE_SPACEX_DATA(fullresponse):
     stripe_count = max(complete[INDEX_STRIPE_COUNT], complete[INDEX_STRIPE_COUNT + 1])
 
     packer = struct.Struct('>BBiiiiiiiI')
+    print(team_id, status, accelaration, position, velocity, battery_voltage, battery_current, battery_temp, pod_temperature, stripe_count)
     return packer.pack(team_id, status, accelaration, position, velocity, battery_voltage, battery_current, battery_temp, pod_temperature, stripe_count)
 
 def HANDLE_HIGH_F_PROCESSED(data):
     parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
         format((x1 << 16 | x2), 'x').zfill(8)))[0] if x1 is not 0 or x2 is not 0 else 0
-<<<<<<< HEAD
-
     process_data = [data[0],                                # prefix             (100)
                     parse_16s_to_float(data[1], data[2]),   # projected position (101)
                     parse_16s_to_float(data[3], data[4]),   # projected velocity (102)
@@ -47,9 +46,6 @@ def HANDLE_HIGH_F_PROCESSED(data):
                     parse_16s_to_float(data[18], data[19])  # Gyr z          (111)
                     ]
     return process_data
-=======
-    return data 
->>>>>>> master
 
 def HANDLE_LOG(data):
     return ", ".join(str(x) for x in data)

@@ -256,9 +256,9 @@ class hercules_messenger(spi16bit):
         :return : None
         """
         print("(Re)Initializing hercules")
-        gpio.output(RESET_PIN, gpio.LOW)
+        [gpio.output(rp, gpio.LOW) for rp in RESET_PINS]
         time.sleep(0.5)
-        gpio.output(RESET_PIN, gpio.HIGH)
+        [gpio.output(rp, gpio.HIGH) for rp in RESET_PINS]
         c = 0
         while True:
             response_prefix = []
@@ -275,9 +275,9 @@ class hercules_messenger(spi16bit):
             if all(response_prefix):
                 print("Initialized hercules succesfully!")
                 break
-            gpio.output(RESET_PIN, gpio.LOW)
+            [gpio.output(rp, gpio.LOW) for rp in RESET_PINS]
             time.sleep(0.5)
-            gpio.output(RESET_PIN, gpio.HIGH)
+            [gpio.output(rp, gpio.HIGH) for rp in RESET_PINS]
 
             if c == 20:
                 print("Unable to reinitialize hercules")
