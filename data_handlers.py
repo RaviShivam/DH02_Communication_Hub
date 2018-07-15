@@ -26,8 +26,12 @@ def HANDLE_SPACEX_DATA(fullresponse):
     stripe_count = max(complete[INDEX_STRIPE_COUNT], complete[INDEX_STRIPE_COUNT + 1])
 
     packer = struct.Struct('>BBiiiiiiiI')
-    print(team_id, status, accelaration, position, velocity, battery_voltage, battery_current, battery_temp, pod_temperature, stripe_count)
-    return packer.pack(team_id, status, accelaration, position, velocity, battery_voltage, battery_current, battery_temp, pod_temperature, stripe_count)
+    try:
+        packed_data = packer.pack(team_id, status, accelaration, position, velocity, battery_voltage, battery_current, battery_temp, pod_temperature, stripe_count)
+    except struct.error:
+        print("Unable to pack data in SpaceX format")
+        packed_data = packer.pack(team_id, status, 0, 0, 0, 0, 0, 0, 0, 0)
+    return packed_data
 
 def HANDLE_HIGH_F_PROCESSED(data):
     parse_16s_to_float = lambda x1, x2: struct.unpack('>f', bytes.fromhex(
