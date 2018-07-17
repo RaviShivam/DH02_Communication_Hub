@@ -24,7 +24,8 @@ low_frequency_logger = mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
 
 high_frequency_logger = mission_logger(logger_name=LOGGER_NAME_HIGH_FREQUENCY,
                                        filename=HIGH_FREQUENCY_LOG_FILE,
-                                       handle_data=HANDLE_HIGH_F_PROCESSED)
+                                       #handle_data=HANDLE_HIGH_F_PROCESSED)
+                                       handle_data=HANDLE_LOG)
 
 # Initialize hercules communication module
 low_frequency_data_retriever = hercules_comm_module(retrieving_frequency=LOW_DATA_RETRIEVAL_FREQUENCY,
@@ -109,7 +110,7 @@ try:
         hercules_messenger.poll_latest_data()
 
         # Send SpaceX data.
-        #spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
         mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
