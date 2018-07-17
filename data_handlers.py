@@ -21,7 +21,6 @@ def HANDLE_SPACEX_DATA(fullresponse):
     battery_voltage = (complete[INDEX_BATTERY_VOLTAGE] + 30000) * 10
 
     battery_current = (complete[INDEX_BATTERY_CURRENT] - 65536 if complete[INDEX_BATTERY_CURRENT] > 32767 else complete[INDEX_BATTERY_CURRENT]) * 100
-    print(complete[INDEX_BATTERY_CURRENT])
     battery_temp = (complete[INDEX_BATTERY_TEMPERATURE] - 100) * 10
     pod_temperature = 0
     stripe_count = max(complete[INDEX_STRIPE_COUNT], complete[INDEX_STRIPE_COUNT + 1])

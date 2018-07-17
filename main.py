@@ -17,6 +17,7 @@ if not os.path.exists("/home/pi/DH02_Communication_Hub/logs"):
 # Set gpio pins used during the mission high.
 initialize_Hub()
 
+
 # initialize loggers
 low_frequency_logger = mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
                                       filename=LOW_FREQUENCY_LOG_FILE,
@@ -77,15 +78,17 @@ def trigger_reconnecting_state():
     This handles the same procedure as the main loop, but waits to reconnect with the mission control.
     """
     gpio.output(BRAKE_PIN, False)
+    hercules_messenger.send_command([0x0fff, 0, 0])
+
     while True:
         # Execute all commands in the command buffer
         handle_received_commands()
 
         # Retrieve data from hercules using data retrievers
-        hercules_messenger.poll_latest_data()
+        #hercules_messenger.poll_latest_data()
 
         # Send SpaceX data.
-        spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        #spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
         # Check if the mission control is alive
         if mc_messenger.is_mc_alive():
@@ -112,15 +115,15 @@ try:
         # Send SpaceX data.
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
-        mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        # mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
-        # # Check if the mission control is alive
-        # if mc_messenger.is_mc_alive():
-        #     # Send data to Mission Control.
-        #     mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
-        # else:
-        #     print("Disconnected... Entering reconnection state.")
-        #     trigger_reconnecting_state()
+        # Check if the mission control is alive
+        if mc_messenger.is_mc_alive():
+             # Send data to Mission Control.
+             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        else:
+             print("Disconnected... Entering reconnection state.")
+             trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     cleanup_Hub()

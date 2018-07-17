@@ -153,6 +153,7 @@ class mc_messenger():
         self.last_heartbeat = self.current_time_millis()
         topic, command = msg.topic, msg.payload.decode()
         if topic == self.command_topic:
+            print("Received command", command)
             state_switch, arg1, arg2 = self.sanity_check(command.split(","))
             # Immediate trigger brake (no queue needed)
             if state_switch == EMERGENCY_BRAKE_COMMAND:
@@ -246,6 +247,7 @@ class hercules_messenger(spi16bit):
 
     def send_command(self, command):
         decoded_command = MASTER_PREFIX
+        print("Sending command: ", command)
         for comm in command:
             decoded_command = decoded_command + self.int2bits16(int(comm))
         self.xfer16(decoded_command, self.command_config)

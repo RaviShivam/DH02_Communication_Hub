@@ -25,10 +25,10 @@ EMERGENCY_BRAKE_COMMAND = 0x0dec  # 3564
 RESET_COMMAND = 0x0ffff  # 65535
 
 MQTT_CLIENT_NAME = "COMMUNICATION HUB"
-HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
+HEARTBEAT_TIMEOUT_MC = 500  # milliseconds
 # TODO: Make second timeout while accelerating.
-SENDING_FREQUENCY_MC_LOW = 10  # p/second
-SENDING_FREQUENCY_MC_HIGH = 10  # p/second
+SENDING_FREQUENCY_MC_LOW = 5  # p/second
+SENDING_FREQUENCY_MC_HIGH = 5  # p/second
 
 LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
@@ -41,9 +41,9 @@ RESET_PINS = [17, 27]
 ####################################### HERCULES MESSENGER SPI CONSTANTS ##############################################
 #######################################################################################################################
 # Constants for sending SPI packages to Hercules
-LOW_DATA_RETRIEVAL_FREQUENCY = 20  # Hz
-HIGH_DATA_RETRIEVAL_FREQUENCY = 1500  # Hz
-SPI_FREQUENCY_HERCULES = 2000000  # Hz
+LOW_DATA_RETRIEVAL_FREQUENCY = 50  # Hz
+HIGH_DATA_RETRIEVAL_FREQUENCY = 100  # Hz
+SPI_FREQUENCY_HERCULES = 1000000  # Hz
 
 # Chip selects for the SPI link
 CS0 = 5
