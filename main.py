@@ -112,15 +112,15 @@ try:
         # Send SpaceX data.
         spacex_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
-        mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        # mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
 
-        # # Check if the mission control is alive
-        # if mc_messenger.is_mc_alive():
-        #     # Send data to Mission Control.
-        #     mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
-        # else:
-        #     print("Disconnected... Entering reconnection state.")
-        #     trigger_reconnecting_state()
+        # Check if the mission control is alive
+        if mc_messenger.is_mc_alive():
+             # Send data to Mission Control.
+             mc_messenger.send_data(hercules_messenger.latest_retrieved_data)
+        else:
+             print("Disconnected... Entering reconnection state.")
+             trigger_reconnecting_state()
 
 except KeyboardInterrupt:
     cleanup_Hub()
