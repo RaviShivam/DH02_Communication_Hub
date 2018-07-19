@@ -17,6 +17,10 @@ if not os.path.exists("/home/pi/DH02_Communication_Hub/logs"):
 # Set gpio pins used during the mission high.
 initialize_Hub()
 
+num_files = len(os.listdir(LOGDIR))
+LOW_FREQUENCY_LOG_FILE = LOGDIR + str(num_files + 1) + "_lowfreq__" 
+HIGH_FREQUENCY_LOG_FILE = LOGDIR + str(num_files + 1) + "_highfreq__" 
+
 # initialize loggers
 low_frequency_logger = mission_logger(logger_name=LOGGER_NAME_LOW_FREQUENCY,
                                       filename=LOW_FREQUENCY_LOG_FILE,

@@ -64,10 +64,10 @@ class mission_logger:
 
         # Setup logger
         self.logger = logging.getLogger(logger_name)
-        filename = filename + "-" + time.strftime("%Y_%m_%d-%H_%M_%S")
+        filename = filename + time.strftime("%Y_%m_%d__%H_%M_%S.csv")
         open(filename, 'w')  # create file if not exist
         hdlr = logging.FileHandler(filename)
-        hdlr.setFormatter(logging.Formatter('%(asctime)s: %(message)s'))
+        hdlr.setFormatter(logging.Formatter('%(asctime)s, %(message)s'))
         self.logger.addHandler(hdlr)
         self.logger.setLevel(logging.INFO)
 

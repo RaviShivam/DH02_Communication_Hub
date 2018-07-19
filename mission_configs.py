@@ -7,9 +7,7 @@ This file contains all the relevant constants that can be adjusted prior to the 
 #######################################################################################################################
 ########################################### DATA LOGGER CONSTANTS #####################################################
 #######################################################################################################################
-# TODO: Give file names better name.
-HIGH_FREQUENCY_LOG_FILE = '/home/pi/DH02_Communication_Hub/logs/highfreq.log'
-LOW_FREQUENCY_LOG_FILE = '/home/pi/DH02_Communication_Hub/logs/lowfreq.log'
+LOGDIR = '/home/pi/DH02_Communication_Hub/logs/'
 
 #######################################################################################################################
 ##################################### MISSION CONTROL MESSENGER CONSTANTS #############################################
@@ -28,7 +26,7 @@ MQTT_CLIENT_NAME = "COMMUNICATION HUB"
 HEARTBEAT_TIMEOUT_MC = 5000  # milliseconds
 # TODO: Make second timeout while accelerating.
 SENDING_FREQUENCY_MC_LOW = 10  # p/second
-SENDING_FREQUENCY_MC_HIGH = 10  # p/second
+SENDING_FREQUENCY_MC_HIGH = 20  # p/second
 
 LOGGER_NAME_LOW_FREQUENCY = "logger-low-frequency"
 LOGGER_NAME_HIGH_FREQUENCY = "logger-high-frequency"
